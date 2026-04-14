@@ -19,7 +19,7 @@ public class UserService {
 
         return userRepository.findByEmail(request.getEmail())
                 .map(user -> {
-                    // 2. 이미 있다면 토큰만 갱신 (Update)
+                    
                     user.setIdToken(request.getIdToken());
                     return user;
                 })
