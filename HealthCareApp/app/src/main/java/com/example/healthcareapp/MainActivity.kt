@@ -3,6 +3,7 @@ package com.example.healthcareapp
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
@@ -23,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.google_login)
+        setContentView(R.layout.google_login_custom)
 
         auth = FirebaseAuth.getInstance()
 
@@ -51,7 +52,7 @@ class MainActivity : ComponentActivity() {
 
 
 
-        val loginButton = findViewById<com.google.android.gms.common.SignInButton>(R.id.btn_google_login)
+        val loginButton = findViewById<Button>(R.id.btn_google_login)
         loginButton.setOnClickListener {
             signIn()
         }
@@ -69,9 +70,9 @@ class MainActivity : ComponentActivity() {
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     val user = auth.currentUser
-                    Toast.makeText(this, "${user?.displayName}님, 환영합니다!", Toast.LENGTH_SHORT).show()
+                    //Toast.makeText(this, "${user?.displayName}님, 환영합니다!", Toast.LENGTH_SHORT).show()
 
-                    // LoadingActivity를 실행하면서 토큰을 전달합니다.
+                    // 토큰을 전달
                     val intent = Intent(this, LoadingActivity::class.java)
                     intent.putExtra("ID_TOKEN", idToken)
                     intent.putExtra("USER_EMAIL", user?.email ?: "") // 이메일 추가

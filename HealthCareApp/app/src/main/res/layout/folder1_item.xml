@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16.dp"
+    android:layout_marginVertical="8.dp"
+    android:background="@drawable/bg_folder_item"
+    android:padding="16.dp">
+
+    <TextView
+        android:id="@+id/tv_folder_title"
+        android:layout_width="0.dp"
+        android:layout_height="wrap_content"
+        android:text="폴더"
+        android:textColor="#000000"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/tv_status"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+    <TextView
+        android:id="@+id/tv_last_modified"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="최종 수정: 2026.04.15"
+        android:textColor="#AAAAAA"
+        android:textSize="11sp"
+        app:layout_constraintStart_toStartOf="@+id/tv_folder_title"
+        app:layout_constraintTop_toBottomOf="@+id/tv_folder_title"
+        android:layout_marginTop="4.dp" />
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8.dp"
+        android:background="@drawable/bg_status_badge"
+        android:paddingHorizontal="8.dp"
+        android:paddingVertical="2.dp"
+        android:text="비공개"
+        android:textColor="#888888"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@+id/tv_folder_title"
+        app:layout_constraintEnd_toStartOf="@+id/btn_more"
+        app:layout_constraintStart_toEndOf="@+id/tv_folder_title"
+        app:layout_constraintTop_toTopOf="@+id/tv_folder_title" />
+
+    <ImageButton
+        android:id="@+id/btn_more"
+        android:layout_width="40.dp"
+        android:layout_height="40.dp"
+        android:layout_marginEnd="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="더보기"
+        android:src="@android:drawable/ic_menu_more"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="#555555" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
