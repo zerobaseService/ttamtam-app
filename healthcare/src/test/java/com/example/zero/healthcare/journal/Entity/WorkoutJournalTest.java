@@ -1,5 +1,10 @@
 package com.example.zero.healthcare.journal.Entity;
 
+import com.example.zero.healthcare.Entity.journal.BodyPart;
+import com.example.zero.healthcare.Entity.journal.BodySide;
+import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
+import com.example.zero.healthcare.Entity.journal.PainTiming;
+import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

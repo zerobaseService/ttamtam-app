@@ -1,6 +1,6 @@
 package com.example.zero.healthcare.repository;
 
-import com.example.zero.healthcare.Entity.WorkoutJournal;
+import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

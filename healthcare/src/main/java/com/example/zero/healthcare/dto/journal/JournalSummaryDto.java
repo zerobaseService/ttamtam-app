@@ -1,6 +1,6 @@
 package com.example.zero.healthcare.dto.journal;
 
-import com.example.zero.healthcare.Entity.WorkoutJournal;
+import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import lombok.Getter;
 
 import java.time.LocalDateTime;

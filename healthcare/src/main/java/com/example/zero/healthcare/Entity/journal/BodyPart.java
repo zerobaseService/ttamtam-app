@@ -1,4 +1,4 @@
-package com.example.zero.healthcare.Entity;
+package com.example.zero.healthcare.Entity.journal;
 
 public enum BodyPart {
     HEAD,

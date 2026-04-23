@@ -1,10 +1,10 @@
 package com.example.zero.healthcare.service;
 
-import com.example.zero.healthcare.Entity.BodyPart;
-import com.example.zero.healthcare.Entity.BodySide;
-import com.example.zero.healthcare.Entity.JournalPainRecord;
-import com.example.zero.healthcare.Entity.PainTiming;
-import com.example.zero.healthcare.Entity.WorkoutJournal;
+import com.example.zero.healthcare.Entity.journal.BodyPart;
+import com.example.zero.healthcare.Entity.journal.BodySide;
+import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
+import com.example.zero.healthcare.Entity.journal.PainTiming;
+import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
 import com.example.zero.healthcare.dto.journal.JournalDetailDto;
