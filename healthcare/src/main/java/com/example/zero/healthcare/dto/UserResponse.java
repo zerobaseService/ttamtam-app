@@ -1,22 +1,13 @@
 package com.example.zero.healthcare.dto;
 
-
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 
 @Getter
-@Setter
+@AllArgsConstructor
 public class UserResponse {
     private boolean success;
     private String message;
     private Long userId;
-
-    public UserResponse(){
-
-    }
-    public UserResponse(boolean success,String message,Long userId){
-        this.success = success;
-        this.message = message;
-        this.userId = userId;
-    }
+    private String accessToken;
 }

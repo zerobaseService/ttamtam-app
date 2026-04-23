@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+
 class LoadingActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,30 +26,34 @@ class LoadingActivity : ComponentActivity() {
         val nickname = intent.getStringExtra("USER_NAME") ?: ""
         Log.d("LoadingActivity", "전달받은 토큰: $idToken")
 
-        sendTokenToServer(idToken,email,nickname)
+        sendTokenToServer(idToken, email, nickname)
     }
 
-    private fun sendTokenToServer(idToken: String,email:String,nickname:String) {
-        val request = GoogleLoginRequest(idToken,email,nickname)
+    private fun sendTokenToServer(idToken: String, email: String, nickname: String) {
+        val request = GoogleLoginRequest(idToken, email, nickname)
 
         RetrofitClient.authService.RegisterUser(request).enqueue(object : Callback<UserResponse> {
             override fun onResponse(call: Call<UserResponse>, response: Response<UserResponse>) {
                 MainScope().launch {
-                if (response.isSuccessful) {
+                    if (response.isSuccessful) {
+                        val body = response.body()
+                        body?.accessToken?.let { token ->
+                            getSharedPreferences("auth_prefs", MODE_PRIVATE).edit()
+                                .putString("access_token", token)
+                                .putLong("user_id", body.userId ?: -1L)
+                                .apply()
+                        }
                         delay(3000)
-                        val intent = Intent(this@LoadingActivity, LoginSuccess::class.java)
-                        startActivity(intent)
+                        startActivity(Intent(this@LoadingActivity, LoginSuccess::class.java))
                         finish()
-
-                } else {
-                    // 에러 시에는 바로 처리
-                    Log.e("LoadingActivity", "응답 코드: ${response.code()}") // 예: 400, 404, 500
-                    Log.e("LoadingActivity", "에러 바디: ${response.errorBody()?.string()}")
-                    Toast.makeText(this@LoadingActivity, "서버 거절", Toast.LENGTH_SHORT).show()
-                    finish()
+                    } else {
+                        Log.e("LoadingActivity", "응답 코드: ${response.code()}")
+                        Log.e("LoadingActivity", "에러 바디: ${response.errorBody()?.string()}")
+                        Toast.makeText(this@LoadingActivity, "서버 거절", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
                 }
-            }}
-
+            }
 
             override fun onFailure(call: Call<UserResponse>, t: Throwable) {
                 Log.e("LoadingActivity", "네트워크 에러: ${t.message}")

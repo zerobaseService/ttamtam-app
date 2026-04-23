@@ -1,9 +1,11 @@
 package com.example.zero.healthcare.controller;
 
-
+import com.example.zero.healthcare.Entity.User;
+import com.example.zero.healthcare.auth.JwtTokenProvider;
 import com.example.zero.healthcare.dto.GoogleLoginRequest;
 import com.example.zero.healthcare.dto.UserResponse;
 import com.example.zero.healthcare.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,21 +14,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
+
     private final UserService userService;
-    public AuthController(UserService userService){
-        this.userService = userService;
-    }
+    private final JwtTokenProvider jwtTokenProvider;
+
     @PostMapping("/google")
-    public ResponseEntity<UserResponse> register(@RequestBody GoogleLoginRequest request){
-
-
-        System.out.println("토큰:" + request.getIdToken());
-        System.out.println("이메일: " + request.getEmail());
-        System.out.println("닉네임: " + request.getNickname());
-
-        userService.loginOrRegister(request);
-        UserResponse response = new UserResponse(true,"토큰완료",1L);
+    public ResponseEntity<UserResponse> register(@RequestBody GoogleLoginRequest request) {
+        User user = userService.loginOrRegister(request);
+        String token = jwtTokenProvider.generateToken(user.getId());
+        UserResponse response = new UserResponse(true, "로그인 성공", user.getId(), token);
         return ResponseEntity.ok(response);
     }
 }
