@@ -1,0 +1,65 @@
+package com.example.zero.healthcare.controller;
+
+import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
+import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
+import com.example.zero.healthcare.dto.journal.JournalDetailDto;
+import com.example.zero.healthcare.dto.journal.JournalSummaryDto;
+import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
+import com.example.zero.healthcare.service.JournalService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.Map;
+
+@Tag(name = "Journal", description = "운동 일지 관련 API")
+@RestController
+@RequestMapping("/api/journals")
+@RequiredArgsConstructor
+public class JournalController {
+
+    private final JournalService journalService;
+
+    @Operation(summary = "컨디션 기록 새 운동 일지 생성")
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody CreateJournalRequest request) {
+        CreateJournalResponse data = journalService.createJournal(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("success", true, "data", data));
+    }
+
+    @Operation(summary = "운동 후 기록 추가 (PATCH)")
+    @PatchMapping("/{id}/post")
+    public ResponseEntity<Map<String, Object>> updatePost(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateJournalPostRequest request) {
+        CreateJournalResponse data = journalService.updatePostCondition(id, request);
+        return ResponseEntity.ok(Map.of("success", true, "data", data));
+    }
+
+    @Operation(summary = "사용자 일지 목록 조회")
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> getMyJournals(@RequestParam Long userId) {
+        List<JournalSummaryDto> data = journalService.getMyJournals(userId);
+        return ResponseEntity.ok(Map.of("success", true, "data", data));
+    }
+
+    @Operation(summary = "일지 상세 조회")
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> getJournalDetail(@PathVariable Long id) {
+        JournalDetailDto data = journalService.getJournalDetail(id);
+        return ResponseEntity.ok(Map.of("success", true, "data", data));
+    }
+}
