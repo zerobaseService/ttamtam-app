@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 시크릿 파일 ###
+.env
+**/src/main/resources/application-secret.properties
