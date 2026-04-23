@@ -1,5 +1,6 @@
 package com.example.healthcareapp
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.icu.text.SimpleDateFormat
@@ -11,15 +12,16 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
-
-import androidx.activity.ComponentActivity
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.gms.dynamic.SupportFragmentWrapper
-import java.sql.Date
+import com.example.healthcareapp.data.InviteLinkResponse
+import com.example.healthcareapp.network.RetrofitClient
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.util.Locale
 
 class FolderAdapter(
@@ -29,9 +31,9 @@ class FolderAdapter(
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvTitle: TextView = view.findViewById(R.id.tv_folder_title)
-        val tvStatus : TextView = view.findViewById(R.id.tv_status)
+        val tvStatus: TextView = view.findViewById(R.id.tv_status)
         val btnMore: View = view.findViewById(R.id.btn_more)
-        val lastmodified : TextView = view.findViewById(R.id.tv_last_modified)
+        val lastmodified: TextView = view.findViewById(R.id.tv_last_modified)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -40,29 +42,21 @@ class FolderAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val folderName = items[position]
-        holder.tvTitle.text = folderName.name
-        holder.lastmodified.text = "최종 수정일: ${folderName.lastmodified}"
-
-        if(folderName.isShared){
+        val folder = items[position]
+        holder.tvTitle.text = folder.name
+        holder.lastmodified.text = "최종 수정일: ${folder.lastmodified}"
+        if (folder.isShared) {
             holder.tvStatus.text = "공유중"
-            holder.tvStatus.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FFEB3B"))) // 연파랑
-
-        }
-        else{
+            holder.tvStatus.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FFEB3B")))
+        } else {
             holder.tvStatus.text = "비공개"
-            holder.tvStatus.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F2F2F2"))) // 회색
-
+            holder.tvStatus.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F2F2F2")))
         }
-
-        holder.btnMore.setOnClickListener {
-            onMoreClick(folderName)
-        }
+        holder.btnMore.setOnClickListener { onMoreClick(folder) }
     }
 
     override fun getItemCount() = items.size
 }
-
 
 class FolderActivity : AppCompatActivity() {
 
@@ -77,12 +71,10 @@ class FolderActivity : AppCompatActivity() {
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView_folders)
         val btnAdd = findViewById<Button>(R.id.btn_add_folder)
 
-
         folderAdapter = FolderAdapter(folderList) { clickedFolder ->
-            // FolderOptionSheet 생성자에 객체와 리스너들을 전달
             val bottomSheet = FolderOptionSheet(
                 folder = clickedFolder,
-                onShareClick = { toggleShareStatus(clickedFolder) },
+                onShareClick = { shareFolder(clickedFolder) },
                 onEditClick = { showEditDialog(clickedFolder) },
                 onExitClick = { exitFolder(clickedFolder) }
             )
@@ -92,35 +84,64 @@ class FolderActivity : AppCompatActivity() {
         recyclerView.adapter = folderAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-
         btnAdd.setOnClickListener {
             val newFolder = FolderItem(
+                folderId = 0L, // TODO: replace with real folderId from backend create API
                 name = "untitled (${folderList.size + 1})",
                 isShared = false,
                 lastmodified = getCurrentTime()
             )
             folderList.add(newFolder)
-
             emptyView.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
             folderAdapter.notifyItemInserted(folderList.size - 1)
         }
     }
 
-    // 이름 변경 다이얼로그
+    private fun shareFolder(folder: FolderItem) {
+        if (folder.folderId <= 0L) {
+            Toast.makeText(this, "폴더를 저장한 후 공유할 수 있습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        RetrofitClient.folderService.createInviteLink(folder.folderId)
+            .enqueue(object : Callback<InviteLinkResponse> {
+                override fun onResponse(call: Call<InviteLinkResponse>, response: Response<InviteLinkResponse>) {
+                    if (response.isSuccessful) {
+                        val link = response.body()?.inviteLink ?: return
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, link)
+                        }
+                        startActivity(Intent.createChooser(shareIntent, "초대 링크 공유"))
+                    } else {
+                        val msg = when (response.code()) {
+                            403 -> "폴더 접근 권한이 없습니다."
+                            409 -> "이미 2명이 참여 중입니다."
+                            400 -> "닫힌 폴더입니다."
+                            else -> "초대 링크 생성 실패 (${response.code()})"
+                        }
+                        Toast.makeText(this@FolderActivity, msg, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onFailure(call: Call<InviteLinkResponse>, t: Throwable) {
+                    Toast.makeText(this@FolderActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
+    }
+
     private fun showEditDialog(folder: FolderItem) {
         val editText = EditText(this)
         editText.setText(folder.name)
         editText.setSelectAllOnFocus(true)
-
         AlertDialog.Builder(this)
             .setTitle("폴더 이름 변경")
             .setView(editText)
             .setPositiveButton("변경") { _, _ ->
                 val newName = editText.text.toString()
                 if (newName.isNotEmpty()) {
-                    folder.name = newName // 객체 내부 이름 변경
-                    folder.lastmodified = getCurrentTime() // 수정일 갱신
+                    folder.name = newName
+                    folder.lastmodified = getCurrentTime()
                     folderAdapter.notifyDataSetChanged()
                 }
             }
@@ -128,34 +149,20 @@ class FolderActivity : AppCompatActivity() {
             .show()
     }
 
-    // 공유 상태 토글 기능
-    private fun toggleShareStatus(folder: FolderItem) {
-        folder.isShared = !folder.isShared
-        folderAdapter.notifyDataSetChanged()
-    }
-
-    // 폴더 나가기 기능
     private fun exitFolder(folder: FolderItem) {
         val index = folderList.indexOf(folder)
         if (index != -1) {
             folderList.removeAt(index)
             folderAdapter.notifyItemRemoved(index)
-
             if (folderList.isEmpty()) {
                 findViewById<View>(R.id.layout_empty).visibility = View.VISIBLE
             }
         }
     }
+
     fun getCurrentTime(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA)
         sdf.timeZone = TimeZone.getTimeZone("Asia/Seoul")
         return sdf.format(java.util.Date())
-    }
-
-    // 이름 변경 시 호출
-    private fun updateFolderName(folder: FolderItem, newName: String) {
-        folder.name = newName
-        folder.lastmodified = getCurrentTime() // 하드코딩 대신 진짜 현재 시간!
-        folderAdapter.notifyDataSetChanged()
     }
 }

@@ -1,6 +1,8 @@
 package com.example.zero.healthcare.exception.common;
 
+import com.example.zero.healthcare.exception.CoreException;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +11,15 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(CoreException.class)
+    public ResponseEntity<ErrorResponse> handleCoreException(CoreException ex) {
+        log.warn("CoreException: {}", ex.getMessage());
+        return ResponseEntity.status(ex.getErrorCode().getStatus())
+                .body(new ErrorResponse(ex.getErrorCode().getCode(), ex.getErrorCode().getMessage()));
+    }
 
     @ExceptionHandler(AbstractException.class)
     public ResponseEntity<ErrorResponse> handleAbstractException(AbstractException ex) {
