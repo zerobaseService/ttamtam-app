@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("76197716489-jur4fdvep8o5e60mm574gbrf7d23c2lf.apps.googleusercontent.com") // Firebase 연동 시 자동 생성되는 ID
+            .requestIdToken("273956393814-8q7knfjqnrrlnvihtgbbucj2rar9uojg.apps.googleusercontent.com") // Firebase 연동 시 자동 생성되는 ID
             .requestEmail()
             .build()
 
