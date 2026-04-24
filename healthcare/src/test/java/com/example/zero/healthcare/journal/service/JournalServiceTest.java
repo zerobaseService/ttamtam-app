@@ -1,16 +1,15 @@
 package com.example.zero.healthcare.journal.service;
 
-import com.example.zero.healthcare.Entity.BodyPart;
-import com.example.zero.healthcare.Entity.BodySide;
-import com.example.zero.healthcare.Entity.PainTiming;
+import com.example.zero.healthcare.Entity.journal.PainTiming;
 import com.example.zero.healthcare.Entity.User;
-import com.example.zero.healthcare.Entity.WorkoutJournal;
+import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
 import com.example.zero.healthcare.dto.journal.PainRecordDto;
 import com.example.zero.healthcare.dto.journal.PreConditionDto;
 import com.example.zero.healthcare.repository.JournalRepository;
 import com.example.zero.healthcare.repository.UserRepository;
+import com.example.zero.healthcare.service.JournalService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,6 +1,6 @@
 package com.example.zero.healthcare.dto.journal;
 
-import com.example.zero.healthcare.Entity.JournalPainRecord;
+import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
 import lombok.Getter;
 
 @Getter

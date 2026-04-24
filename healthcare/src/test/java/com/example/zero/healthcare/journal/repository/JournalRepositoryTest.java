@@ -1,11 +1,13 @@
 package com.example.zero.healthcare.journal.repository;
 
-import com.example.zero.healthcare.Entity.BodyPart;
-import com.example.zero.healthcare.Entity.BodySide;
-import com.example.zero.healthcare.Entity.JournalPainRecord;
-import com.example.zero.healthcare.Entity.PainTiming;
+import com.example.zero.healthcare.Entity.journal.BodyPart;
+import com.example.zero.healthcare.Entity.journal.BodySide;
+import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
+import com.example.zero.healthcare.Entity.journal.PainTiming;
 import com.example.zero.healthcare.Entity.User;
-import com.example.zero.healthcare.Entity.WorkoutJournal;
+import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
+import com.example.zero.healthcare.repository.JournalRepository;
+import com.example.zero.healthcare.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import java.util.UUID;
