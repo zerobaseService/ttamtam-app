@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("273956393814-8q7knfjqnrrlnvihtgbbucj2rar9uojg.apps.googleusercontent.com") // Firebase 연동 시 자동 생성되는 ID
+            .requestIdToken("76197716489-jur4fdvep8o5e60mm574gbrf7d23c2lf.apps.googleusercontent.com") // Firebase 연동 시 자동 생성되는 ID
             .requestEmail()
             .build()
 
@@ -37,15 +37,24 @@ class MainActivity : ComponentActivity() {
 
 
         googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            Log.d("GoogleLogin", "resultCode: ${result.resultCode}, RESULT_OK=$RESULT_OK")
             if (result.resultCode == RESULT_OK) {
                 val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
                 try {
                     val account = task.getResult(ApiException::class.java)!!
-
+                    Log.d("GoogleLogin", "계정 획득 성공: ${account.email}")
                     firebaseAuthWithGoogle(account.idToken!!)
                 } catch (e: ApiException) {
-                    Log.e("GoogleLogin", "구글 로그인 실패: ${e.message}")
-                    Toast.makeText(this, "로그인 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Log.e("GoogleLogin", "구글 로그인 실패 statusCode: ${e.statusCode}, message: ${e.message}")
+                    Toast.makeText(this, "로그인 실패: ${e.statusCode}", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Log.e("GoogleLogin", "RESULT_OK 아님. resultCode=${result.resultCode}")
+                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                try {
+                    task.getResult(ApiException::class.java)
+                } catch (e: ApiException) {
+                    Log.e("GoogleLogin", "실패 statusCode: ${e.statusCode}")
                 }
             }
         }
@@ -59,8 +68,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun signIn() {
-        val signInIntent = googleSignInClient.signInIntent
-        googleSignInLauncher.launch(signInIntent)
+        googleSignInClient.signOut().addOnCompleteListener {
+            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+        }
     }
 
 
