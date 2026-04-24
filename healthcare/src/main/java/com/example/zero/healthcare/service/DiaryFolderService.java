@@ -171,7 +171,8 @@ public class DiaryFolderService {
         Invite invite = Invite.create(folder, tokenHash);
         inviteRepository.save(invite);
 
-        String deeplink = "ttdev://invite?folderId=" + folderId + "&token=" + rawToken;
+        String encodedName = java.net.URLEncoder.encode(folder.getName(), java.nio.charset.StandardCharsets.UTF_8);
+        String deeplink = "ttdev://invite?folderId=" + folderId + "&token=" + rawToken + "&folderName=" + encodedName;
         String trackingLink = airbridgeClient.createTrackingLink(deeplink);
         return new InviteLinkResponse(trackingLink);
     }

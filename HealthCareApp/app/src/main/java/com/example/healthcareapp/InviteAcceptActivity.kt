@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import co.ab180.airbridge.Airbridge
@@ -58,7 +59,8 @@ class InviteAcceptActivity : AppCompatActivity() {
 
         val folderId = uri.getQueryParameter("folderId")?.toLongOrNull()
         val token = uri.getQueryParameter("token")
-        Log.d("InviteAccept", "folderId=$folderId, token=$token")
+        val folderName = uri.getQueryParameter("folderName")
+        Log.d("InviteAccept", "folderId=$folderId, token=$token, folderName=$folderName")
 
         if (folderId == null || token.isNullOrBlank()) {
             Log.e("InviteAccept", "folderId 또는 token 없음")
@@ -66,6 +68,10 @@ class InviteAcceptActivity : AppCompatActivity() {
             finish()
             return
         }
+
+        val message = if (!folderName.isNullOrBlank()) "'$folderName' 폴더에 초대되었습니다."
+                      else "초대 링크를 통해 폴더에 참여할 수 있습니다."
+        findViewById<TextView>(R.id.tv_invite_message).text = message
 
         val accessToken = getSharedPreferences("auth_prefs", MODE_PRIVATE)
             .getString("access_token", null)
