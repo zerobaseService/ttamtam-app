@@ -1,7 +1,9 @@
 package com.example.healthcareapp.data
 
-data class UserResponse (
+data class ApiResponse<T>(
     val success: Boolean,
-    val message : String,
-    val userId: Long?
+    val data: T?,
+    val message: String?
 )
+
+data class UserDto(val userId: Long)
