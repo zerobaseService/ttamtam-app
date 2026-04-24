@@ -1,5 +1,6 @@
 package com.example.zero.healthcare.controller;
 
+import com.example.zero.healthcare.dto.common.ApiResponse;
 import com.example.zero.healthcare.dto.folder.FolderCreateRequest;
 import com.example.zero.healthcare.dto.folder.FolderCreateResponse;
 import com.example.zero.healthcare.dto.folder.FolderListResponse;
@@ -35,29 +36,29 @@ public class DiaryFolderController {
     }
 
     @GetMapping
-    public ResponseEntity<FolderListResponse> listFolders(
+    public ResponseEntity<ApiResponse<FolderListResponse>> listFolders(
             Authentication auth,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "UPDATED_AT") String sort,
             @RequestParam(required = false) Boolean shared) {
-        return ResponseEntity.ok(diaryFolderService.listFolders(currentUserId(auth), cursor, size, sort, shared));
+        return ResponseEntity.ok(ApiResponse.ok(diaryFolderService.listFolders(currentUserId(auth), cursor, size, sort, shared)));
     }
 
     @GetMapping("/{folderId}")
-    public ResponseEntity<FolderResponse> getFolder(Authentication auth, @PathVariable Long folderId) {
-        return ResponseEntity.ok(diaryFolderService.getFolder(currentUserId(auth), folderId));
+    public ResponseEntity<ApiResponse<FolderResponse>> getFolder(Authentication auth, @PathVariable Long folderId) {
+        return ResponseEntity.ok(ApiResponse.ok(diaryFolderService.getFolder(currentUserId(auth), folderId)));
     }
 
     @PostMapping
-    public ResponseEntity<FolderCreateResponse> createFolder(Authentication auth, @Valid @RequestBody FolderCreateRequest request) {
+    public ResponseEntity<ApiResponse<FolderCreateResponse>> createFolder(Authentication auth, @Valid @RequestBody FolderCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(diaryFolderService.createFolder(currentUserId(auth), request));
+                .body(ApiResponse.ok(diaryFolderService.createFolder(currentUserId(auth), request)));
     }
 
     @PatchMapping("/{folderId}")
-    public ResponseEntity<FolderResponse> updateFolder(Authentication auth, @PathVariable Long folderId, @Valid @RequestBody FolderUpdateRequest request) {
-        return ResponseEntity.ok(diaryFolderService.updateFolderName(currentUserId(auth), folderId, request));
+    public ResponseEntity<ApiResponse<FolderResponse>> updateFolder(Authentication auth, @PathVariable Long folderId, @Valid @RequestBody FolderUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(diaryFolderService.updateFolderName(currentUserId(auth), folderId, request)));
     }
 
     @DeleteMapping("/{folderId}/members/me")
@@ -67,12 +68,12 @@ public class DiaryFolderController {
     }
 
     @PostMapping("/{folderId}/invite-link")
-    public ResponseEntity<InviteLinkResponse> createInviteLink(Authentication auth, @PathVariable Long folderId) {
-        return ResponseEntity.ok(diaryFolderService.createInviteLink(currentUserId(auth), folderId));
+    public ResponseEntity<ApiResponse<InviteLinkResponse>> createInviteLink(Authentication auth, @PathVariable Long folderId) {
+        return ResponseEntity.ok(ApiResponse.ok(diaryFolderService.createInviteLink(currentUserId(auth), folderId)));
     }
 
     @PostMapping("/invite/accept")
-    public ResponseEntity<FolderResponse> acceptInvite(Authentication auth, @RequestBody InviteAcceptRequest request) {
-        return ResponseEntity.ok(diaryFolderService.acceptInvite(currentUserId(auth), request));
+    public ResponseEntity<ApiResponse<FolderResponse>> acceptInvite(Authentication auth, @RequestBody InviteAcceptRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(diaryFolderService.acceptInvite(currentUserId(auth), request)));
     }
 }

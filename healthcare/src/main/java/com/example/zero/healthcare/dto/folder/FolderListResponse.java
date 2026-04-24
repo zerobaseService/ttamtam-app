@@ -8,7 +8,7 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class FolderListResponse {
-    private List<FolderResponse> data;
+    private List<FolderResponse> folders;
     private String nextCursor;
     private boolean hasNext;
 }

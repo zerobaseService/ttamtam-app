@@ -14,6 +14,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.healthcareapp.data.ApiResponse
 import com.example.healthcareapp.data.CreateFolderRequest
 import com.example.healthcareapp.data.CreateFolderResponse
 import com.example.healthcareapp.data.FolderListResponse
@@ -98,12 +99,12 @@ class FolderActivity : AppCompatActivity() {
 
     private fun loadFolders() {
         RetrofitClient.folderService.getFolders()
-            .enqueue(object : Callback<FolderListResponse> {
-                override fun onResponse(call: Call<FolderListResponse>, response: Response<FolderListResponse>) {
+            .enqueue(object : Callback<ApiResponse<FolderListResponse>> {
+                override fun onResponse(call: Call<ApiResponse<FolderListResponse>>, response: Response<ApiResponse<FolderListResponse>>) {
                     if (response.isSuccessful) {
-                        val body = response.body() ?: return
+                        val folders = response.body()?.data?.folders ?: return
                         folderList.clear()
-                        body.data.forEach { dto ->
+                        folders.forEach { dto ->
                             folderList.add(FolderItem(
                                 folderId = dto.folderId,
                                 name = dto.name,
@@ -118,7 +119,7 @@ class FolderActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun onFailure(call: Call<FolderListResponse>, t: Throwable) {
+                override fun onFailure(call: Call<ApiResponse<FolderListResponse>>, t: Throwable) {
                     Toast.makeText(this@FolderActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                 }
             })
@@ -145,10 +146,10 @@ class FolderActivity : AppCompatActivity() {
 
     private fun createFolder(name: String) {
         RetrofitClient.folderService.createFolder(CreateFolderRequest(name))
-            .enqueue(object : Callback<CreateFolderResponse> {
-                override fun onResponse(call: Call<CreateFolderResponse>, response: Response<CreateFolderResponse>) {
+            .enqueue(object : Callback<ApiResponse<CreateFolderResponse>> {
+                override fun onResponse(call: Call<ApiResponse<CreateFolderResponse>>, response: Response<ApiResponse<CreateFolderResponse>>) {
                     if (response.isSuccessful) {
-                        val body = response.body() ?: return
+                        val body = response.body()?.data ?: return
                         folderList.add(FolderItem(
                             folderId = body.folderId,
                             name = body.name,
@@ -166,7 +167,7 @@ class FolderActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun onFailure(call: Call<CreateFolderResponse>, t: Throwable) {
+                override fun onFailure(call: Call<ApiResponse<CreateFolderResponse>>, t: Throwable) {
                     Toast.makeText(this@FolderActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                 }
             })
@@ -174,10 +175,10 @@ class FolderActivity : AppCompatActivity() {
 
     private fun shareFolder(folder: FolderItem) {
         RetrofitClient.folderService.createInviteLink(folder.folderId)
-            .enqueue(object : Callback<InviteLinkResponse> {
-                override fun onResponse(call: Call<InviteLinkResponse>, response: Response<InviteLinkResponse>) {
+            .enqueue(object : Callback<ApiResponse<InviteLinkResponse>> {
+                override fun onResponse(call: Call<ApiResponse<InviteLinkResponse>>, response: Response<ApiResponse<InviteLinkResponse>>) {
                     if (response.isSuccessful) {
-                        val link = response.body()?.inviteLink ?: return
+                        val link = response.body()?.data?.inviteLink ?: return
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, link)
@@ -194,7 +195,7 @@ class FolderActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun onFailure(call: Call<InviteLinkResponse>, t: Throwable) {
+                override fun onFailure(call: Call<ApiResponse<InviteLinkResponse>>, t: Throwable) {
                     Toast.makeText(this@FolderActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                 }
             })
@@ -222,10 +223,10 @@ class FolderActivity : AppCompatActivity() {
 
     private fun updateFolderName(folder: FolderItem, newName: String) {
         RetrofitClient.folderService.updateFolderName(folder.folderId, UpdateFolderRequest(newName))
-            .enqueue(object : Callback<UpdateFolderResponse> {
-                override fun onResponse(call: Call<UpdateFolderResponse>, response: Response<UpdateFolderResponse>) {
+            .enqueue(object : Callback<ApiResponse<UpdateFolderResponse>> {
+                override fun onResponse(call: Call<ApiResponse<UpdateFolderResponse>>, response: Response<ApiResponse<UpdateFolderResponse>>) {
                     if (response.isSuccessful) {
-                        val body = response.body() ?: return
+                        val body = response.body()?.data ?: return
                         val index = folderList.indexOf(folder)
                         if (index != -1) {
                             folder.name = body.name
@@ -242,7 +243,7 @@ class FolderActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun onFailure(call: Call<UpdateFolderResponse>, t: Throwable) {
+                override fun onFailure(call: Call<ApiResponse<UpdateFolderResponse>>, t: Throwable) {
                     Toast.makeText(this@FolderActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                 }
             })

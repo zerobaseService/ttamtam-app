@@ -1,5 +1,6 @@
 package com.example.healthcareapp.network
 
+import com.example.healthcareapp.data.ApiResponse
 import com.example.healthcareapp.data.CreateFolderRequest
 import com.example.healthcareapp.data.CreateFolderResponse
 import com.example.healthcareapp.data.FolderListResponse
@@ -24,23 +25,23 @@ interface DiaryFolderApiService {
         @Query("size") size: Int = 20,
         @Query("sort") sort: String = "UPDATED_AT",
         @Query("cursor") cursor: String? = null
-    ): Call<FolderListResponse>
+    ): Call<ApiResponse<FolderListResponse>>
 
     @POST("/api/folders")
-    fun createFolder(@Body request: CreateFolderRequest): Call<CreateFolderResponse>
+    fun createFolder(@Body request: CreateFolderRequest): Call<ApiResponse<CreateFolderResponse>>
 
     @PATCH("/api/folders/{folderId}")
     fun updateFolderName(
         @Path("folderId") folderId: Long,
         @Body request: UpdateFolderRequest
-    ): Call<UpdateFolderResponse>
+    ): Call<ApiResponse<UpdateFolderResponse>>
 
     @DELETE("/api/folders/{folderId}/members/me")
     fun leaveFolder(@Path("folderId") folderId: Long): Call<Void>
 
     @POST("/api/folders/{folderId}/invite-link")
-    fun createInviteLink(@Path("folderId") folderId: Long): Call<InviteLinkResponse>
+    fun createInviteLink(@Path("folderId") folderId: Long): Call<ApiResponse<InviteLinkResponse>>
 
     @POST("/api/folders/invite/accept")
-    fun acceptInvite(@Body request: InviteAcceptRequest): Call<FolderResponse>
+    fun acceptInvite(@Body request: InviteAcceptRequest): Call<ApiResponse<FolderResponse>>
 }

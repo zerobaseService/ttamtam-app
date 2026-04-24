@@ -8,6 +8,7 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import co.ab180.airbridge.Airbridge
+import com.example.healthcareapp.data.ApiResponse
 import com.example.healthcareapp.data.FolderResponse
 import com.example.healthcareapp.data.InviteAcceptRequest
 import com.example.healthcareapp.network.RetrofitClient
@@ -86,8 +87,8 @@ class InviteAcceptActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_accept).isEnabled = false
 
         RetrofitClient.folderService.acceptInvite(InviteAcceptRequest(folderId, token))
-            .enqueue(object : Callback<FolderResponse> {
-                override fun onResponse(call: Call<FolderResponse>, response: Response<FolderResponse>) {
+            .enqueue(object : Callback<ApiResponse<FolderResponse>> {
+                override fun onResponse(call: Call<ApiResponse<FolderResponse>>, response: Response<ApiResponse<FolderResponse>>) {
                     Log.d("InviteAccept", "응답 코드: ${response.code()}")
                     if (response.isSuccessful) {
                         Log.d("InviteAccept", "성공 → FolderActivity 이동")
@@ -112,7 +113,7 @@ class InviteAcceptActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun onFailure(call: Call<FolderResponse>, t: Throwable) {
+                override fun onFailure(call: Call<ApiResponse<FolderResponse>>, t: Throwable) {
                     Log.e("InviteAccept", "네트워크 실패: ${t.message}")
                     Toast.makeText(this@InviteAcceptActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                     findViewById<Button>(R.id.btn_accept).isEnabled = true

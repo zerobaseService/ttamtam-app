@@ -5,8 +5,9 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import com.example.healthcareapp.data.ApiResponse
 import com.example.healthcareapp.data.GoogleLoginRequest
-import com.example.healthcareapp.data.UserResponse
+import com.example.healthcareapp.data.UserDto
 import com.example.healthcareapp.network.RetrofitClient
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
@@ -32,15 +33,15 @@ class LoadingActivity : ComponentActivity() {
     private fun sendTokenToServer(idToken: String, email: String, nickname: String) {
         val request = GoogleLoginRequest(idToken, email, nickname)
 
-        RetrofitClient.authService.RegisterUser(request).enqueue(object : Callback<UserResponse> {
-            override fun onResponse(call: Call<UserResponse>, response: Response<UserResponse>) {
+        RetrofitClient.authService.RegisterUser(request).enqueue(object : Callback<ApiResponse<UserDto>> {
+            override fun onResponse(call: Call<ApiResponse<UserDto>>, response: Response<ApiResponse<UserDto>>) {
                 MainScope().launch {
                     if (response.isSuccessful) {
-                        val body = response.body()
-                        body?.accessToken?.let { token ->
+                        val userDto = response.body()?.data
+                        userDto?.accessToken?.let { token ->
                             getSharedPreferences("auth_prefs", MODE_PRIVATE).edit()
                                 .putString("access_token", token)
-                                .putLong("user_id", body.userId ?: -1L)
+                                .putLong("user_id", userDto.userId ?: -1L)
                                 .apply()
                         }
                         delay(3000)
@@ -55,7 +56,7 @@ class LoadingActivity : ComponentActivity() {
                 }
             }
 
-            override fun onFailure(call: Call<UserResponse>, t: Throwable) {
+            override fun onFailure(call: Call<ApiResponse<UserDto>>, t: Throwable) {
                 Log.e("LoadingActivity", "네트워크 에러: ${t.message}")
                 Toast.makeText(this@LoadingActivity, "네트워크 연결 실패", Toast.LENGTH_SHORT).show()
                 finish()

@@ -25,7 +25,7 @@ data class FolderResponse(
 )
 
 data class FolderListResponse(
-    val data: List<FolderResponse>,
+    val folders: List<FolderResponse>,
     val nextCursor: String?,
     val hasNext: Boolean
 )

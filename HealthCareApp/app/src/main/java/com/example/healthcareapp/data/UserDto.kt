@@ -1,8 +1,6 @@
 package com.example.healthcareapp.data
 
-data class UserResponse(
-    val success: Boolean,
-    val message: String,
+data class UserDto(
     val userId: Long?,
     val accessToken: String?
 )
