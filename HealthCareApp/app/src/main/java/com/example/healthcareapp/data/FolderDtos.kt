@@ -23,3 +23,28 @@ data class FolderResponse(
     val createdAt: String?,
     val updatedAt: String?
 )
+
+data class FolderListResponse(
+    val data: List<FolderResponse>,
+    val nextCursor: String?,
+    val hasNext: Boolean
+)
+
+data class CreateFolderRequest(val name: String)
+
+data class CreateFolderResponse(
+    val folderId: Long,
+    val name: String,
+    val isShared: Boolean,
+    val createdAt: String?
+)
+
+data class UpdateFolderRequest(val name: String)
+
+data class UpdateFolderResponse(
+    val folderId: Long,
+    val name: String,
+    val isShared: Boolean,
+    val createdAt: String?,
+    val updatedAt: String?
+)
