@@ -13,6 +13,7 @@ import com.example.zero.healthcare.dto.folder.InviteAcceptRequest;
 import com.example.zero.healthcare.dto.folder.InviteLinkResponse;
 import com.example.zero.healthcare.exception.CoreException;
 import com.example.zero.healthcare.exception.ErrorCode;
+import com.example.zero.healthcare.client.AirbridgeTrackingLinkClient;
 import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
 import com.example.zero.healthcare.repository.DiaryFolderRepository;
 import com.example.zero.healthcare.repository.InviteRepository;
@@ -39,6 +40,7 @@ public class DiaryFolderService {
     private final DiaryFolderMemberRepository memberRepository;
     private final InviteRepository inviteRepository;
     private final UserRepository userRepository;
+    private final AirbridgeTrackingLinkClient airbridgeClient;
 
     // Disallow control chars, newlines, tabs — allow everything else (emoji, space, etc.)
     private static final Pattern INVALID_CHARS = Pattern.compile("[\\p{Cntrl}]");
@@ -169,8 +171,9 @@ public class DiaryFolderService {
         Invite invite = Invite.create(folder, tokenHash);
         inviteRepository.save(invite);
 
-        String link = "ttdev://invite?folderId=" + folderId + "&token=" + rawToken;
-        return new InviteLinkResponse(link);
+        String deeplink = "ttdev://invite?folderId=" + folderId + "&token=" + rawToken;
+        String trackingLink = airbridgeClient.createTrackingLink(deeplink);
+        return new InviteLinkResponse(trackingLink);
     }
 
     @Transactional
