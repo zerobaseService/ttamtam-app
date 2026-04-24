@@ -1,6 +1,5 @@
 package com.example.zero.healthcare.exception.common;
 
-import com.example.zero.healthcare.exception.CoreException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -14,15 +13,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(CoreException.class)
-    public ResponseEntity<ErrorResponse> handleCoreException(CoreException ex) {
-        log.warn("CoreException: {}", ex.getMessage());
-        return ResponseEntity.status(ex.getErrorCode().getStatus())
-                .body(new ErrorResponse(ex.getErrorCode().getCode(), ex.getErrorCode().getMessage()));
-    }
-
     @ExceptionHandler(AbstractException.class)
     public ResponseEntity<ErrorResponse> handleAbstractException(AbstractException ex) {
+        log.warn("AbstractException: {}", ex.getMessage());
         return ResponseEntity.status(ex.getStatus())
                 .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
     }
@@ -57,6 +50,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex) {
+        log.error("Unhandled exception", ex);
         ErrorCode code = ErrorCode.INTERNAL_ERROR;
         return ResponseEntity.status(code.getStatus())
                 .body(new ErrorResponse(code.getCode(), code.getMessage()));

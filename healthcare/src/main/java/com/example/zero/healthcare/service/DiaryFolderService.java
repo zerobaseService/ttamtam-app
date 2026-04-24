@@ -12,7 +12,7 @@ import com.example.zero.healthcare.dto.folder.FolderUpdateRequest;
 import com.example.zero.healthcare.dto.folder.InviteAcceptRequest;
 import com.example.zero.healthcare.dto.folder.InviteLinkResponse;
 import com.example.zero.healthcare.exception.CoreException;
-import com.example.zero.healthcare.exception.ErrorCode;
+import com.example.zero.healthcare.exception.common.ErrorCode;
 import com.example.zero.healthcare.client.AirbridgeTrackingLinkClient;
 import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
 import com.example.zero.healthcare.repository.DiaryFolderRepository;

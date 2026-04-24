@@ -1,13 +1,11 @@
 package com.example.zero.healthcare.exception;
 
-import lombok.Getter;
+import com.example.zero.healthcare.exception.common.AbstractException;
+import com.example.zero.healthcare.exception.common.ErrorCode;
 
-@Getter
-public class CoreException extends RuntimeException {
-    private final ErrorCode errorCode;
+public class CoreException extends AbstractException {
 
     public CoreException(ErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
+        super(errorCode);
     }
 }

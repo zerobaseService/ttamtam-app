@@ -1,7 +1,7 @@
 package com.example.zero.healthcare.util;
 
 import com.example.zero.healthcare.exception.CoreException;
-import com.example.zero.healthcare.exception.ErrorCode;
+import com.example.zero.healthcare.exception.common.ErrorCode;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
