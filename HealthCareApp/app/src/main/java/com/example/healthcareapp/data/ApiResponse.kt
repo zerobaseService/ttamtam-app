@@ -5,5 +5,3 @@ data class ApiResponse<T>(
     val data: T?,
     val message: String?
 )
-
-data class UserDto(val userId: Long)

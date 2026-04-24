@@ -1,7 +1,8 @@
 package com.example.healthcareapp
 
 data class FolderItem(
-    var name : String,
-    var isShared : Boolean = false,
-    var lastmodified : String = "2026-04-15"
+    var folderId: Long = 0L,
+    var name: String,
+    var isShared: Boolean,
+    var lastmodified: String
 )

@@ -35,8 +35,8 @@ public class JournalController {
     @Operation(summary = "컨디션 기록 새 운동 일지 생성")
     @PostMapping
     public ResponseEntity<ApiResponse<CreateJournalResponse>> create(@Valid @RequestBody CreateJournalRequest request) {
-        CreateJournalResponse data = journalService.createJournal(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(data));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(journalService.createJournal(request)));
     }
 
     @Operation(summary = "운동 후 기록 추가 (PATCH)")
@@ -44,21 +44,18 @@ public class JournalController {
     public ResponseEntity<ApiResponse<CreateJournalResponse>> updatePost(
             @PathVariable Long id,
             @Valid @RequestBody UpdateJournalPostRequest request) {
-        CreateJournalResponse data = journalService.updatePostCondition(id, request);
-        return ResponseEntity.ok(ApiResponse.ok(data));
+        return ResponseEntity.ok(ApiResponse.ok(journalService.updatePostCondition(id, request)));
     }
 
     @Operation(summary = "사용자 일지 목록 조회")
     @GetMapping
     public ResponseEntity<ApiResponse<List<JournalSummaryDto>>> getMyJournals(@RequestParam Long userId) {
-        List<JournalSummaryDto> data = journalService.getMyJournals(userId);
-        return ResponseEntity.ok(ApiResponse.ok(data));
+        return ResponseEntity.ok(ApiResponse.ok(journalService.getMyJournals(userId)));
     }
 
     @Operation(summary = "일지 상세 조회")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<JournalDetailDto>> getJournalDetail(@PathVariable Long id) {
-        JournalDetailDto data = journalService.getJournalDetail(id);
-        return ResponseEntity.ok(ApiResponse.ok(data));
+        return ResponseEntity.ok(ApiResponse.ok(journalService.getJournalDetail(id)));
     }
 }
