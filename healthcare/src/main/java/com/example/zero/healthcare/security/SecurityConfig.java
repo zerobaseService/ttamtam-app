@@ -29,8 +29,8 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
-                        .requestMatchers("/api/folders/invite/accept").authenticated()
                         .requestMatchers("/api/folders/**").authenticated()
+                        .requestMatchers("/api/journals/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, userRepository),
