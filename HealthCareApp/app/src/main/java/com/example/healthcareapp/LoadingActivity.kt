@@ -20,7 +20,7 @@ class LoadingActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.loading)
+        setContentView(R.layout.signuploading)
 
         val idToken = intent.getStringExtra("ID_TOKEN") ?: ""
         val email = intent.getStringExtra("USER_EMAIL") ?: ""
@@ -44,7 +44,7 @@ class LoadingActivity : ComponentActivity() {
                                 .putLong("user_id", userResponse.userId ?: -1L)
                                 .apply()
                         }
-                        delay(3000)
+                        delay(1500)
                         startActivity(Intent(this@LoadingActivity, LoginSuccess::class.java))
                         finish()
                     } else {

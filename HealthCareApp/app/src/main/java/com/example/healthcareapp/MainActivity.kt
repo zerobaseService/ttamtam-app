@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.google_login_custom)
+        setContentView(R.layout.google_login2)
 
         auth = FirebaseAuth.getInstance()
 
