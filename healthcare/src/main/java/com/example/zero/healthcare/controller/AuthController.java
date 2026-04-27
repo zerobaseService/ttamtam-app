@@ -1,9 +1,8 @@
 package com.example.zero.healthcare.controller;
 
-import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.auth.JwtTokenProvider;
 import com.example.zero.healthcare.dto.GoogleLoginRequest;
-import com.example.zero.healthcare.dto.UserDto;
+import com.example.zero.healthcare.dto.UserResponse;
 import com.example.zero.healthcare.dto.common.ApiResponse;
 import com.example.zero.healthcare.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +21,8 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/google")
-    public ResponseEntity<ApiResponse<UserDto>> register(@RequestBody GoogleLoginRequest request) {
-        User user = userService.loginOrRegister(request);
-        String token = jwtTokenProvider.generateToken(user.getId());
-        return ResponseEntity.ok(ApiResponse.ok(new UserDto(user.getId(), token), "로그인 성공"));
+    public ResponseEntity<ApiResponse<UserResponse>> register(@RequestBody GoogleLoginRequest request) {
+        UserResponse user = userService.loginOrRegister(request);
+        return ResponseEntity.ok(ApiResponse.ok(user, "로그인 성공"));
     }
 }
