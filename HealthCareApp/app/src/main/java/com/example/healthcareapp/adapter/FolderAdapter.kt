@@ -10,13 +10,14 @@ import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.FolderItem
+import com.example.healthcareapp.FolderItem2
 import com.example.healthcareapp.R
 import java.util.Random
 
 
 class FolderAdapter(
-    var items: MutableList<FolderItem>,    // 폴더 데이터 리스트
-    val onMoreClick: (FolderItem) -> Unit // 더보기(...) 버튼 클릭 시 호출할 함수 (바텀시트 연결)
+    var items: MutableList<FolderItem2>,    // 폴더 데이터 리스트
+    val onMoreClick: (FolderItem2) -> Unit // 더보기(...) 버튼 클릭 시 호출할 함수 (바텀시트 연결)
 ) : RecyclerView.Adapter<FolderAdapter.ViewHolder>() {
 
     // 아이템 왼쪽 뷰에 적용 색상 리스트 (피그마 디자인팀)
@@ -92,7 +93,7 @@ class FolderAdapter(
     override fun getItemCount() = items.size
 
   // 생성일순, 최근사용순 리스트 갱신
-    fun updateData(newItems: List<FolderItem>) {
+    fun updateData(newItems: List<FolderItem2>) {
         this.items.clear()          // 기존 데이터 삭제
         this.items.addAll(newItems) // 새 데이터 추가
         notifyDataSetChanged()      // 리스트 전체 다시 그리기

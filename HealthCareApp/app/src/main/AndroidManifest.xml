@@ -30,30 +30,26 @@
         <activity android:name=".MainActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         </activity>
-        <activity android:name=".InviteAcceptActivity"
+        <activity
+            android:name=".InviteAcceptActivity"
+            android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ttdev" android:host="invite" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="ttdev.airbridge.io" />
+            </intent-filter>
         </activity>
-<!--        <activity-->
-<!--            android:name=".InviteAcceptActivity"-->
-<!--            android:exported="true"-->
-<!--            android:theme="@style/Theme.AppCompat.Light.NoActionBar">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-<!--                <data android:scheme="ttdev" android:host="invite" />-->
-<!--            </intent-filter>-->
-<!--            <intent-filter android:autoVerify="true">-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-<!--                <data android:scheme="https" android:host="ttdev.airbridge.io" />-->
-<!--            </intent-filter>-->
-<!--        </activity>-->
         <activity android:name=".LoginSuccess"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:exported="true">
-
         </activity>
         <activity android:name=".LoadingActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
@@ -63,7 +59,7 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         </activity>
-        <activity android:name=".FolderActivity"
+        <activity android:name=".FolderActivity2"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             >
         </activity>

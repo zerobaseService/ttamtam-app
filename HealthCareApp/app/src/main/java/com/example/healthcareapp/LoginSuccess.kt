@@ -8,9 +8,9 @@ import androidx.activity.ComponentActivity
 class LoginSuccess : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.success)
+        setContentView(R.layout.signupcomplete)
 
-        val StartButton = findViewById<Button>(R.id.StartButton)
+        val StartButton = findViewById<Button>(R.id.btn_start)
 
         StartButton.setOnClickListener{
             //val intent = Intent(this,FolderActivity::class.java)

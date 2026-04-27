@@ -1,5 +1,6 @@
 package com.example.healthcareapp
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -36,7 +37,7 @@ class FolderOptionSheet(
 
         //현재 선택된 폴더의 이름을 타이틀에 표시
         tvTitle.text = folder.name
-
+        val btnShareLink: View = view.findViewById(R.id.btn_create_link)
         //이미 공유 중인 폴더는 '링크 생성' 메뉴를 숨김 처리
         btnCreateLink.visibility = if (folder.isShared) View.GONE else View.VISIBLE
 
@@ -46,9 +47,10 @@ class FolderOptionSheet(
         btnClose.setOnClickListener { dismiss() }
 
         // 링크 생성/공유 메뉴 클릭 시
-        btnCreateLink.setOnClickListener {
+        btnShareLink.setOnClickListener {
             onLinkClick() // 부모에게 알림
             dismiss()     // 메뉴창 닫기
+
         }
 
         // [이름 수정] 메뉴 클릭 시
@@ -65,4 +67,7 @@ class FolderOptionSheet(
 
         return view
     }
+
+
+
 }

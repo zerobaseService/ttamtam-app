@@ -1,6 +1,5 @@
 //package com.example.healthcareapp
 //
-//import android.content.res.ColorStateList
 //import android.graphics.Color
 //import android.graphics.Typeface
 //import android.icu.text.SimpleDateFormat
@@ -19,7 +18,7 @@
 //class FolderActivity : AppCompatActivity() {
 //
 //    // 데이터 및 어댑터 변수
-//    private val allFolders = mutableListOf<FolderItem>() // 앱이 켜져 있는 동안 유지되는 폴더 리스트
+//    private val allFolders = mutableListOf<FolderItem2>() // 앱이 켜져 있는 동안 유지되는 폴더 리스트
 //    private lateinit var folderAdapter: FolderAdapter     // 리스트 뷰와 데이터를 연결
 //
 //    // UI 변수
@@ -153,7 +152,7 @@
 //    private fun addNewFolder() {
 //        // 진짜 추가할 것인지 묻는 확인 시트 호출
 //        val confirmSheet = FolderAddConfirmSheet {
-//            val newFolder = FolderItem(
+//            val newFolder = FolderItem2(
 //                name = "untitled${allFolders.size + 1}",
 //                lastmodified = getCurrentTime(),
 //                status = "공유대기",

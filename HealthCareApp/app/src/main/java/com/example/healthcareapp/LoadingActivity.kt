@@ -44,7 +44,7 @@ class LoadingActivity : ComponentActivity() {
                                 .putLong("user_id", userResponse.userId ?: -1L)
                                 .apply()
                         }
-                        delay(3000)
+                        delay(1500)
                         startActivity(Intent(this@LoadingActivity, LoginSuccess::class.java))
                         finish()
                     } else {
