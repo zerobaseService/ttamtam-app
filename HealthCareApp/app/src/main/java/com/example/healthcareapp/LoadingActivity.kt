@@ -20,7 +20,7 @@ class LoadingActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.loading)
+        setContentView(R.layout.signuploading)
 
         val idToken = intent.getStringExtra("ID_TOKEN") ?: ""
         val email = intent.getStringExtra("USER_EMAIL") ?: ""
