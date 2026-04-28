@@ -21,14 +21,16 @@ class DiaryActivity : AppCompatActivity() {
     private lateinit var btnPrevWeek: ImageView      // 이전 주로 이동하는 버튼
     private lateinit var btnNextWeek: ImageView      // 다음 주로 이동하는 버튼
     private lateinit var exersizeStart : TextView     // 운동 기록 화면으로 넘어가는 텍스트/버튼
-
+    private var folderId: Long = -1L
+    private var folderName: String? = null
     private lateinit var dayAdapter: DayAdapter       // 날짜를 표시할 어댑터
     private var currentCalendar = Calendar.getInstance() // 현재 날짜 정보를 가진 캘린더 객체
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.calendarbar) // 캘린더바 레이아웃 연결
-
+        folderId = intent.getLongExtra("FOLDER_ID", -1L)
+        folderName = intent.getStringExtra("FOLDER_NAME")
         // 1. 뷰들을 ID와 연결하여 초기화
         initViews()
 
@@ -37,6 +39,7 @@ class DiaryActivity : AppCompatActivity() {
 
         // 3. 버튼들의 클릭 이벤트 설정
         initClickListeners()
+
     }
 
     // findViewById를 통해 XML의 뷰들을 연결하는 함수
@@ -85,9 +88,13 @@ class DiaryActivity : AppCompatActivity() {
         }
 
         // '운동 기록 시작' 버튼 클릭 시 DiaryListActivity(일지 목록 화면)로 이동
-        exersizeStart.setOnClickListener{
-            intent = Intent(this, DiaryListActivity::class.java) // 목적지 설정
-            startActivity(intent) // 화면 전환
+        // '운동 기록 시작' 버튼 클릭 시 정보를 가지고 DiaryListActivity로 이동
+        exersizeStart.setOnClickListener {
+            val intent = Intent(this, DiaryListActivity::class.java).apply {
+                putExtra("FOLDER_ID", folderId)      // 받은 ID를 그대로 전달
+                putExtra("FOLDER_NAME", folderName)  // 받은 이름을 그대로 전달
+            }
+            startActivity(intent)
         }
     }
 

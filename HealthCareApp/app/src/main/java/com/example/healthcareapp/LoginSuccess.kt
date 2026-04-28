@@ -14,7 +14,7 @@ class LoginSuccess : ComponentActivity() {
 
         StartButton.setOnClickListener{
             //val intent = Intent(this,FolderActivity::class.java)
-            val intent = Intent(this,FolderActivity2::class.java)
+            val intent = Intent(this,HomeActivity::class.java)
             startActivity(intent)
             finish()
         }
