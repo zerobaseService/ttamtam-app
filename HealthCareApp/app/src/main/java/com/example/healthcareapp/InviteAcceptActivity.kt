@@ -99,7 +99,7 @@ class InviteAcceptActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         Log.d("InviteAccept", "성공 → FolderActivity 이동")
                         Toast.makeText(this@InviteAcceptActivity, "폴더에 참여했습니다!", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@InviteAcceptActivity, FolderActivity::class.java))
+                        startActivity(Intent(this@InviteAcceptActivity, FolderActivity2::class.java))
                         finish()
                     } else {
                         val errorBody = response.errorBody()?.string() ?: ""
