@@ -63,9 +63,17 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             >
         </activity>
+        <activity android:name=".HomeActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            >
+        </activity>
 
         <activity android:name=".DiaryListActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+
+        </activity>
+        <activity android:name=".WorkoutActivity"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
 
         </activity>
     </application>

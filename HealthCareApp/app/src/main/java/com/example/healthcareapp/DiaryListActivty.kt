@@ -39,9 +39,11 @@ class DiaryListActivity : AppCompatActivity() {
         setupCalendar()     // 2. 상단 날짜바 설정
         createDummyData()   // 3. 테스트용 데이터 생성
         setupDiaryList()    // 4. 하단 일지 목록 설정
-
-        // Intent(화면 전환 시 넘어온 데이터)에서 폴더 이름을 가져오고 없으면 "Folder"로 표시
+        val folderId = intent.getLongExtra("FOLDER_ID", -1L) // DB 조회를 위해 저장해두세요
         val folderName = intent.getStringExtra("FOLDER_NAME") ?: "Folder"
+        tvFolderName.text = folderName // 상단 바에 폴더 이름 표시
+        // Intent(화면 전환 시 넘어온 데이터)에서 폴더 이름을 가져오고 없으면 "Folder"로 표시
+
         tvFolderName.text = folderName
 
         initClickListeners() // 5. 클릭 이벤트
