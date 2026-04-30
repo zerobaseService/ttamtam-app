@@ -7,6 +7,7 @@ import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Builder;
@@ -18,12 +19,14 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "workout_journal")
+@Table(name = "workout_journal",
+        indexes = @Index(name = "idx_journal_author_date", columnList = "author_id, workout_date, created_at"))
 @Getter
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
@@ -41,19 +44,22 @@ public class WorkoutJournal {
     @Column(name = "author_id", nullable = false)
     private Long authorId;
 
-    @Column(name = "pre_joint_muscle_pain", nullable = false)
+    @Column(name = "workout_date", nullable = false)
+    private LocalDate workoutDate;
+
+    @Column(name = "pre_joint_muscle_pain")
     private Integer preJointMusclePain;
 
-    @Column(name = "pre_sleep_hours", nullable = false)
+    @Column(name = "pre_sleep_hours")
     private Integer preSleepHours;
 
-    @Column(name = "pre_sleep_quality", nullable = false)
+    @Column(name = "pre_sleep_quality")
     private Integer preSleepQuality;
 
-    @Column(name = "pre_previous_fatigue", nullable = false)
+    @Column(name = "pre_previous_fatigue")
     private Integer prePreviousFatigue;
 
-    @Column(name = "pre_overall_condition", nullable = false)
+    @Column(name = "pre_overall_condition")
     private Integer preOverallCondition;
 
     @Column(name = "post_joint_muscle_pain")
@@ -91,13 +97,18 @@ public class WorkoutJournal {
     @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
     private List<JournalPainRecord> painRecords = new ArrayList<>();
 
+//    @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
+//    @jakarta.persistence.OrderBy("displayOrder ASC")
+//    private List<JournalAttachment> attachments = new ArrayList<>();
+
     @Builder
-    public WorkoutJournal(Long folderId, Long authorId,
+    public WorkoutJournal(Long folderId, Long authorId, LocalDate workoutDate,
                           Integer preJointMusclePain, Integer preSleepHours,
                           Integer preSleepQuality, Integer prePreviousFatigue,
                           Integer preOverallCondition) {
         this.folderId = folderId;
         this.authorId = authorId;
+        this.workoutDate = workoutDate;
         this.preJointMusclePain = preJointMusclePain;
         this.preSleepHours = preSleepHours;
         this.preSleepQuality = preSleepQuality;
@@ -109,6 +120,14 @@ public class WorkoutJournal {
         painRecords.add(record);
         record.setJournal(this);
     }
+
+//    public void addAttachment(JournalAttachment attachment) {
+//        if (attachments.size() >= 5) {
+//            throw new IllegalStateException("이미지는 최대 5개까지 첨부 가능합니다.");
+//        }
+//        attachments.add(attachment);
+//        attachment.setJournal(this);
+//    }
 
     public void applyPostCondition(Integer postJointMusclePain, Integer postIntensityFit,
                                    Integer postGoalAchieved, Integer postDizziness,

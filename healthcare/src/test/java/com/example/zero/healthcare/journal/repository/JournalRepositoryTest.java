@@ -2,6 +2,7 @@ package com.example.zero.healthcare.journal.repository;
 
 import com.example.zero.healthcare.Entity.journal.BodyPart;
 import com.example.zero.healthcare.Entity.journal.BodySide;
+import com.example.zero.healthcare.Entity.journal.JournalAttachment;
 import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
 import com.example.zero.healthcare.Entity.journal.PainTiming;
 import com.example.zero.healthcare.Entity.User;
@@ -10,6 +11,7 @@ import com.example.zero.healthcare.repository.JournalRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,8 +45,13 @@ class JournalRepositoryTest {
     }
 
     private WorkoutJournal buildJournal(Long authorId) {
+        return buildJournal(authorId, LocalDate.of(2026, 4, 20));
+    }
+
+    private WorkoutJournal buildJournal(Long authorId, LocalDate workoutDate) {
         return WorkoutJournal.builder()
                 .authorId(authorId)
+                .workoutDate(workoutDate)
                 .preJointMusclePain(5)
                 .preSleepHours(7)
                 .preSleepQuality(6)
@@ -148,5 +155,162 @@ class JournalRepositoryTest {
 
         assertThat(journals).hasSize(1);
         assertThat(journals.get(0).getId()).isEqualTo(active.getId());
+    }
+
+    @Test
+    @DisplayName("특정일로 조회하면 해당 날짜 일지만 반환한다")
+    void findByAuthorIdAndWorkoutDate_returnsOnlySameDay() {
+        User user = saveUser();
+        LocalDate targetDate = LocalDate.of(2026, 4, 20);
+        LocalDate otherDate = LocalDate.of(2026, 4, 21);
+
+        journalRepository.save(buildJournal(user.getId(), targetDate));
+        journalRepository.save(buildJournal(user.getId(), otherDate));
+        em.flush();
+        em.clear();
+
+        List<WorkoutJournal> result = journalRepository
+                .findByAuthorIdAndWorkoutDateOrderByCreatedAtDesc(user.getId(), targetDate);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getWorkoutDate()).isEqualTo(targetDate);
+    }
+
+    @Test
+    @DisplayName("기간 조회는 from/to 날짜를 포함하여 반환한다")
+    void findByAuthorIdAndWorkoutDateBetween_returnsInclusiveRange() {
+        User user = saveUser();
+
+        journalRepository.save(buildJournal(user.getId(), LocalDate.of(2026, 3, 31)));
+        journalRepository.save(buildJournal(user.getId(), LocalDate.of(2026, 4, 1)));
+        journalRepository.save(buildJournal(user.getId(), LocalDate.of(2026, 4, 15)));
+        journalRepository.save(buildJournal(user.getId(), LocalDate.of(2026, 4, 30)));
+        journalRepository.save(buildJournal(user.getId(), LocalDate.of(2026, 5, 1)));
+        em.flush();
+        em.clear();
+
+        LocalDate from = LocalDate.of(2026, 4, 1);
+        LocalDate to = LocalDate.of(2026, 4, 30);
+        List<WorkoutJournal> result = journalRepository
+                .findByAuthorIdAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(user.getId(), from, to);
+
+        assertThat(result).hasSize(3);
+        assertThat(result).allMatch(j ->
+                !j.getWorkoutDate().isBefore(from) && !j.getWorkoutDate().isAfter(to));
+    }
+
+    @Test
+    @DisplayName("일지는 workoutDate DESC, createdAt DESC로 정렬된다")
+    void findByAuthorId_sortedByWorkoutDateDescThenCreatedAtDesc() {
+        User user = saveUser();
+        LocalDate earlier = LocalDate.of(2026, 4, 1);
+        LocalDate later = LocalDate.of(2026, 4, 20);
+
+        journalRepository.save(buildJournal(user.getId(), earlier));
+        journalRepository.save(buildJournal(user.getId(), later));
+        em.flush();
+        em.clear();
+
+        List<WorkoutJournal> result = journalRepository
+                .findByAuthorIdOrderByWorkoutDateDescCreatedAtDesc(user.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getWorkoutDate()).isEqualTo(later);
+        assertThat(result.get(1).getWorkoutDate()).isEqualTo(earlier);
+    }
+
+    @Test
+    @DisplayName("pre 컨디션 없이 일지를 저장할 수 있다 (pre-* nullable)")
+    void save_withoutPreCondition_succeeds() {
+        User user = saveUser();
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(user.getId())
+                .workoutDate(LocalDate.of(2026, 4, 20))
+                .build();
+
+        WorkoutJournal saved = journalRepository.save(journal);
+        em.flush();
+        em.clear();
+
+        WorkoutJournal found = journalRepository.findById(saved.getId()).orElseThrow();
+        assertThat(found.getPreJointMusclePain()).isNull();
+        assertThat(found.getPreSleepHours()).isNull();
+    }
+
+    @Test
+    @DisplayName("같은 날 여러 일지를 저장해도 모두 저장된다 (UNIQUE 없음)")
+    void sameAuthorMultipleOnSameDate_allPersisted() {
+        User user = saveUser();
+        LocalDate date = LocalDate.of(2026, 4, 20);
+
+        journalRepository.save(buildJournal(user.getId(), date));
+        journalRepository.save(buildJournal(user.getId(), date));
+        em.flush();
+        em.clear();
+
+        List<WorkoutJournal> result = journalRepository
+                .findByAuthorIdAndWorkoutDateOrderByCreatedAtDesc(user.getId(), date);
+
+        assertThat(result).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("attachments가 cascade PERSIST로 함께 저장되고 displayOrder 오름차순으로 조회된다")
+    void save_withAttachments_cascadePersistsAndSortedByDisplayOrder() {
+        User user = saveUser();
+        WorkoutJournal journal = buildJournal(user.getId());
+
+        journal.addAttachment(JournalAttachment.builder()
+                .imageUrl("https://cdn.ttamtam.app/img1.jpg").displayOrder(1).build());
+        journal.addAttachment(JournalAttachment.builder()
+                .imageUrl("https://cdn.ttamtam.app/img0.jpg").displayOrder(0).build());
+
+        WorkoutJournal saved = journalRepository.save(journal);
+        em.flush();
+        em.clear();
+
+        WorkoutJournal found = journalRepository.findById(saved.getId()).orElseThrow();
+        assertThat(found.getAttachments()).hasSize(2);
+        assertThat(found.getAttachments().get(0).getDisplayOrder()).isEqualTo(0);
+        assertThat(found.getAttachments().get(1).getDisplayOrder()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNull은 PRE-only 일지 중 가장 최근 것을 반환한다")
+    void findFirstPreOnly_returnsLatestMatchingJournal() {
+        User user = saveUser();
+        LocalDate date = LocalDate.of(2026, 4, 20);
+
+        WorkoutJournal first = journalRepository.save(buildJournal(user.getId(), date));
+        em.flush();
+        WorkoutJournal second = journalRepository.save(buildJournal(user.getId(), date));
+        em.flush();
+        em.clear();
+
+        java.util.Optional<WorkoutJournal> result = journalRepository
+                .findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
+                        user.getId(), date);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(second.getId());
+    }
+
+    @Test
+    @DisplayName("postRecordedAt이 있는 일지는 findFirstPreOnly 조회에서 제외된다")
+    void findFirstPreOnly_excludesJournalsWithPostRecordedAt() {
+        User user = saveUser();
+        LocalDate date = LocalDate.of(2026, 4, 20);
+
+        WorkoutJournal completed = buildJournal(user.getId(), date);
+        completed.applyPostCondition(6, 7, 8, 2, 9, "완료");
+        journalRepository.save(completed);
+        em.flush();
+        em.clear();
+
+        java.util.Optional<WorkoutJournal> result = journalRepository
+                .findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
+                        user.getId(), date);
+
+        assertThat(result).isEmpty();
     }
 }

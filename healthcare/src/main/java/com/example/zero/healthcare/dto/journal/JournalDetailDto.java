@@ -3,6 +3,7 @@ package com.example.zero.healthcare.dto.journal;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,6 +13,7 @@ public class JournalDetailDto {
 
     private final Long journalId;
     private final Long folderId;
+    private final LocalDate workoutDate;
     private final LocalDateTime createdAt;
     private final LocalDateTime postRecordedAt;
 
@@ -33,6 +35,7 @@ public class JournalDetailDto {
     public JournalDetailDto(WorkoutJournal journal) {
         this.journalId = journal.getId();
         this.folderId = journal.getFolderId();
+        this.workoutDate = journal.getWorkoutDate();
         this.createdAt = journal.getCreatedAt();
         this.postRecordedAt = journal.getPostRecordedAt();
 
@@ -52,5 +55,6 @@ public class JournalDetailDto {
         this.painRecords = journal.getPainRecords().stream()
                 .map(PainRecordResponseDto::new)
                 .collect(Collectors.toList());
+
     }
 }
