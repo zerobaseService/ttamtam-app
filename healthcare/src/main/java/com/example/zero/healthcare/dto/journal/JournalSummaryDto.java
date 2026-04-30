@@ -3,12 +3,14 @@ package com.example.zero.healthcare.dto.journal;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
 public class JournalSummaryDto {
 
     private final Long journalId;
+    private final LocalDate workoutDate;
     private final LocalDateTime createdAt;
     private final boolean postRecorded;
     private final Integer preOverallCondition;
@@ -16,6 +18,7 @@ public class JournalSummaryDto {
 
     public JournalSummaryDto(WorkoutJournal journal) {
         this.journalId = journal.getId();
+        this.workoutDate = journal.getWorkoutDate();
         this.createdAt = journal.getCreatedAt();
         this.postRecorded = journal.getPostRecordedAt() != null;
         this.preOverallCondition = journal.getPreOverallCondition();

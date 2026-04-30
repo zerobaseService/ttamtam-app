@@ -3,19 +3,21 @@ package com.example.zero.healthcare.dto.journal;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
-@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class CreateJournalRequest {
 
-    @NotNull
-    private Long userId;
+    @NotNull @PastOrPresent
+    private LocalDate workoutDate;
 
     private Long folderId;
 
