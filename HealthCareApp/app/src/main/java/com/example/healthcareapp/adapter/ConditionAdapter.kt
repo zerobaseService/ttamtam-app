@@ -23,14 +23,14 @@ class ConditionAdapter(private val items: MutableList<ConditionRecord>) :
         val ivArrow: ImageView = view.findViewById(R.id.iv_arrow)
         val layoutDetail: View = view.findViewById(R.id.layout_detail)
 
-        // 상세 섹션 내의 뷰들
+
         val sliderPain: Slider = view.findViewById(R.id.slider_pain)
         val chipGroupBody: ChipGroup = view.findViewById(R.id.chip_group_body)
         val etMemo: EditText = view.findViewById(R.id.et_condition_memo)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        // 모든 아이템은 상세 폼이 포함된 item_condition.xml을 사용함
+
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_condition, parent, false)
         return ViewHolder(view)
     }
@@ -65,15 +65,14 @@ class ConditionAdapter(private val items: MutableList<ConditionRecord>) :
             }
         }
 
-        // 3. 상세 폼의 데이터 유지 (스크롤 시 초기화 방지)
+
         // 슬라이더 값이 변경되면 데이터 객체에 저장
         holder.sliderPain.value = item.painScore // 기존 저장된 값 세팅
         holder.sliderPain.addOnChangeListener { _, value, _ ->
             item.painScore = value
         }
 
-        // 메모 텍스트 세팅 (데이터 객체에 memo 필드가 있어야 함)
-        // holder.etMemo.setText(item.memo)
+
     }
 
     override fun getItemCount() = items.size

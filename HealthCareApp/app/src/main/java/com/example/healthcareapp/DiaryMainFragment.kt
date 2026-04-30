@@ -94,7 +94,7 @@ class DiaryMainFragment : Fragment() {
         // '운동 기록 시작' 클릭 시 DiaryListActivity로 이동
         exersizeStart.setOnClickListener {
             // 프래그먼트에서는 context 대신 requireContext()를 사용합니다.
-            val intent = Intent(requireContext(), DiaryListActivity::class.java).apply {
+            val intent = Intent(requireContext(), WorkoutExerciseActivity::class.java).apply {
                 putExtra("FOLDER_ID", folderId)
                 putExtra("FOLDER_NAME", folderName)
             }

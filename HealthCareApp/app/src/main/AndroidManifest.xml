@@ -76,6 +76,18 @@
             android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
 
         </activity>
+        <activity android:name=".WorkoutExerciseActivity"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+
+        </activity>
+        <activity android:name=".WorkoutFinishActivity"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+
+        </activity>
+        <activity
+            android:name=".AddExerciseActivity"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
+            android:exported="false" />
     </application>
 
 </manifest>
