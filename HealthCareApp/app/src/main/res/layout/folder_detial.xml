@@ -154,11 +154,11 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add"
+        android:background="@drawable/pluscircle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="24dp"
-        android:src="@drawable/plusbutton"
         app:backgroundTint="#2D3748"
         app:tint="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="parent"

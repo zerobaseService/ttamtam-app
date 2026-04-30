@@ -42,4 +42,32 @@
     <style name="TransparentBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
         <item name="android:background">@android:color/transparent</item>
     </style>
+
+    <style name="WorkoutSliderStyle" parent="Widget.MaterialComponents.Slider">
+        <!-- 트랙(바) 두께와 모양 -->
+        <item name="trackHeight">12dp</item>
+        <item name="trackColorInactive">#E2E8F0</item> <!-- 연한 하늘색/회색 배경 -->
+        <item name="trackColorActive">#3B82F6</item>   <!-- 활성화된 파란색 영역 -->
+
+        <!-- 점(Tick) 디자인 -->
+        <item name="tickColorInactive">#94A3B8</item>  <!-- 비활성 점 -->
+        <item name="tickColorActive">#FFFFFF</item>    <!-- 활성 영역 위 점 -->
+
+        <!-- 엄지(Thumb) 디자인 -->
+        <item name="thumbColor">#FFFFFF</item>         <!-- 흰색 원 -->
+        <item name="thumbStrokeColor">#3B82F6</item>   <!-- 테두리 파란색 -->
+        <item name="thumbStrokeWidth">3dp</item>
+        <item name="thumbRadius">14dp</item>           <!-- 원 크기 -->
+        <item name="thumbElevation">4dp</item>         <!-- 입체감 -->
+
+        <!-- 숫자 툴팁(Label) 스타일 -->
+        <item name="labelStyle">@style/SliderLabel</item>
+    </style>
+
+    <style name="SliderLabel" parent="Widget.MaterialComponents.Tooltip">
+        <item name="android:textColor">#3B82F6</item>
+        <item name="backgroundTint">#FFFFFF</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 </resources>

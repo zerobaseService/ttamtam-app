@@ -34,6 +34,7 @@ class WorkoutActivity : AppCompatActivity() {
     }
 
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.exercise_start)
@@ -43,10 +44,10 @@ class WorkoutActivity : AppCompatActivity() {
         val tabLayout = findViewById<TabLayout>(R.id.tab_layout)
         val viewPager = findViewById<ViewPager2>(R.id.view_pager)
         btnfinish = findViewById(R.id.finish_btn)
-        // 1. 뷰페이저 어댑터 설정
+        // 뷰페이저 어댑터 설정
         viewPager.adapter = ViewPagerAdapter(this)
 
-        // 2. 탭과 뷰페이저 연결
+        // 탭과 뷰페이저 연결
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> "운동 기록"
@@ -54,7 +55,7 @@ class WorkoutActivity : AppCompatActivity() {
             }
         }.attach()
 
-        // 3. 타이머 제어 (Activity가 담당)
+        // 타이머 제어 (Activity가 담당)
         timerLayout.setOnClickListener {
             if (isTimerRunning) {
                 handler.removeCallbacks(timerRunnable)
@@ -66,25 +67,27 @@ class WorkoutActivity : AppCompatActivity() {
          // "종료" 텍스트뷰 ID
 
         btnfinish.setOnClickListener {
-            // 1. 타이머 정지
+            // 타이머 정지
             handler.removeCallbacks(timerRunnable)
             isTimerRunning = false
 
-            // 2. 현재 시간 구하기 (예: 14:06)
+            // 현재 시간 구하기 (예: 14:06)
             val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
-            // 3. ViewPager를 통해 ConditionCheckFragment 찾아가기
+            // ViewPager를 통해 ConditionCheckFragment 찾아가기
             val fragment = supportFragmentManager.findFragmentByTag("f1") as? ConditionCheckFragment
             // (또는 어댑터를 통해 현재 생성된 프래그먼트 인스턴스에 접근)
 
             fragment?.addNewRecord("운동 후 컨디션 체크", currentTime)
 
-            // 4. 탭 이동 (컨디션 체크 탭으로 자동 전환)
+            // 탭 이동 (컨디션 체크 탭으로 자동 전환)
             viewPager.currentItem = 1
         }
 
 
+
     }
+
 
     override fun onDestroy() {
         super.onDestroy()

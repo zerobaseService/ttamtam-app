@@ -1,5 +1,6 @@
 package com.example.healthcareapp
 
+
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -89,10 +90,12 @@ class DiaryActivity : AppCompatActivity() {
 
         // '운동 기록 시작' 버튼 클릭 시 DiaryListActivity(일지 목록 화면)로 이동
         // '운동 기록 시작' 버튼 클릭 시 정보를 가지고 DiaryListActivity로 이동
+
         exersizeStart.setOnClickListener {
-            val intent = Intent(this, DiaryListActivity::class.java).apply {
-                putExtra("FOLDER_ID", folderId)      // 받은 ID를 그대로 전달
-                putExtra("FOLDER_NAME", folderName)  // 받은 이름을 그대로 전달
+            // 목적지를 WorkoutActivity::class.java로 변경했습니다.
+            val intent = Intent(this, WorkoutExerciseActivity::class.java).apply {
+                putExtra("FOLDER_ID", folderId)      // 폴더 ID 전달
+                putExtra("FOLDER_NAME", folderName)  // 폴더 이름 전달
             }
             startActivity(intent)
         }
