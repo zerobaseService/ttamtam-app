@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,11 +5,6 @@ plugins {
     id("com.google.gms.google-services")
     id("kotlin-parcelize")
 
-}
-
-val localProperties = Properties().apply {
-    val f = rootProject.file("local.properties")
-    if (f.exists()) load(f.inputStream())
 }
 
 android {
@@ -26,7 +19,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "AIRBRIDGE_APP_TOKEN", "\"${localProperties["AIRBRIDGE_APP_TOKEN"]}\"")
     }
 
     buildTypes {
@@ -81,5 +73,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation("io.airbridge:sdk-android:4.9.4")
 }
