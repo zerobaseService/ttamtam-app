@@ -8,7 +8,6 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import co.ab180.airbridge.Airbridge
 import com.example.healthcareapp.data.ApiResponse
 import com.example.healthcareapp.data.FolderResponse
 import com.example.healthcareapp.data.InviteAcceptRequest
@@ -26,12 +25,7 @@ class InviteAcceptActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_invite_accept)
 
-        val handled = Airbridge.handleDeeplink(intent) { uri ->
-            processUri(uri)
-        }
-        if (!handled) {
-            processUri(intent?.data)
-        }
+        processUri(intent?.data)
 
         findViewById<Button>(R.id.btn_accept).setOnClickListener {
             val folderId = pendingFolderId
@@ -59,11 +53,12 @@ class InviteAcceptActivity : AppCompatActivity() {
 
         val folderId = uri.getQueryParameter("folderId")?.toLongOrNull()
         val token = uri.getQueryParameter("token")
+            ?: uri.pathSegments.getOrNull(2)
         val folderName = uri.getQueryParameter("folderName")
         Log.d("InviteAccept", "folderId=$folderId, token=$token, folderName=$folderName")
 
-        if (folderId == null || token.isNullOrBlank()) {
-            Log.e("InviteAccept", "folderId 또는 token 없음")
+        if (token.isNullOrBlank()) {
+            Log.e("InviteAccept", "token 없음")
             Toast.makeText(this, "유효하지 않은 초대 링크입니다.", Toast.LENGTH_SHORT).show()
             finish()
             return
@@ -84,7 +79,7 @@ class InviteAcceptActivity : AppCompatActivity() {
             return
         }
 
-        pendingFolderId = folderId
+        pendingFolderId = folderId ?: 0L
         pendingToken = token
     }
 

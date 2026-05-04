@@ -44,7 +44,10 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="ttdev.airbridge.io" />
+                <data
+                    android:scheme="https"
+                    android:host="ttam-ttam-web.vercel.app"
+                    android:pathPrefix="/folders/invite" />
             </intent-filter>
         </activity>
         <activity android:name=".LoginSuccess"
