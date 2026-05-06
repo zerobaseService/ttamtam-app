@@ -1,4 +1,4 @@
-package com.example.healthcareapp
+package com.example.healthcareapp.data
 
 data class FolderItem2(
     var name: String, // 이름

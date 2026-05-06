@@ -3,6 +3,8 @@ package com.example.healthcareapp
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.animation.AnimationUtils
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import com.example.healthcareapp.data.ApiResponse
@@ -21,6 +23,13 @@ class LoadingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.signuploading)
+
+        val loadingimg = findViewById<ImageView>(R.id.iv_loading)
+        val rotateAnimation = AnimationUtils.loadAnimation(this, R.anim.rotate)
+
+        loadingimg.startAnimation(rotateAnimation)
+
+
 
         val idToken = intent.getStringExtra("ID_TOKEN") ?: ""
         val email = intent.getStringExtra("USER_EMAIL") ?: ""
@@ -44,7 +53,7 @@ class LoadingActivity : ComponentActivity() {
                                 .putLong("user_id", userResponse.userId ?: -1L)
                                 .apply()
                         }
-                        delay(1500)
+                        delay(2200)
                         startActivity(Intent(this@LoadingActivity, LoginSuccess::class.java))
                         finish()
                     } else {

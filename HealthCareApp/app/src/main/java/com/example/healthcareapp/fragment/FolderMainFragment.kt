@@ -1,4 +1,4 @@
-package com.example.healthcareapp
+package com.example.healthcareapp.fragment
 
 import android.content.Intent
 import android.graphics.Color
@@ -14,9 +14,13 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.healthcareapp.R
 import com.example.healthcareapp.adapter.FolderAdapter
 import com.example.healthcareapp.data.*
 import com.example.healthcareapp.network.RetrofitClient
+import com.example.healthcareapp.sheet.FolderEditSheet
+import com.example.healthcareapp.sheet.FolderExitSheet
+import com.example.healthcareapp.sheet.FolderOptionSheet
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -136,12 +140,14 @@ class FolderMainFragment : Fragment() {
                         val folders = response.body()?.data?.folders ?: return
                         folderList.clear()
                         folders.forEach { dto ->
-                            folderList.add(FolderItem(
+                            folderList.add(
+                                FolderItem(
                                 folderId = dto.folderId,
                                 name = dto.name,
                                 isShared = dto.isShared,
                                 lastmodified = formatDate(dto.updatedAt ?: dto.createdAt)
-                            ))
+                            )
+                            )
                         }
                         applyFilterAndSort()
                     }

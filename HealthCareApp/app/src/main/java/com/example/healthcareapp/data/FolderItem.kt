@@ -1,4 +1,4 @@
-package com.example.healthcareapp
+package com.example.healthcareapp.data
 
 data class FolderItem(
     var folderId: Long = 0L,

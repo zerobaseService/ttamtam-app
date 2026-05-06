@@ -1,10 +1,11 @@
-package com.example.healthcareapp
+package com.example.healthcareapp.fragment
 
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.healthcareapp.R
 import com.example.healthcareapp.adapter.WorkoutAdapter
 import com.example.healthcareapp.data.ExerciseRecord
 import com.example.healthcareapp.data.ExerciseSet

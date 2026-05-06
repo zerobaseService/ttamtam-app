@@ -1,13 +1,10 @@
 package com.example.healthcareapp
 
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -15,18 +12,21 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.adapter.FolderAdapter
 import com.example.healthcareapp.data.ApiResponse
 import com.example.healthcareapp.data.CreateFolderRequest
 import com.example.healthcareapp.data.CreateFolderResponse
+import com.example.healthcareapp.data.FolderItem
 import com.example.healthcareapp.data.FolderListResponse
 import com.example.healthcareapp.data.InviteLinkResponse
 import com.example.healthcareapp.data.UpdateFolderRequest
 import com.example.healthcareapp.data.UpdateFolderResponse
 import com.example.healthcareapp.network.RetrofitClient
+import com.example.healthcareapp.sheet.FolderEditSheet
+import com.example.healthcareapp.sheet.FolderExitSheet
+import com.example.healthcareapp.sheet.FolderOptionSheet
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -174,12 +174,14 @@ class FolderActivity2 : AppCompatActivity() {
                         folderList.clear() // 이 부분이 확실히 있어야 합니다!
 
                         folders.forEach { dto ->
-                            folderList.add(FolderItem(
+                            folderList.add(
+                                FolderItem(
                                 folderId = dto.folderId,
                                 name = dto.name,
                                 isShared = dto.isShared,
                                 lastmodified = formatDate(dto.updatedAt ?: dto.createdAt)
-                            ))
+                            )
+                            )
                         }
                         applyFilterAndSort()
                     }

@@ -1,10 +1,10 @@
 package com.example.healthcareapp.adapter
 
-import com.example.healthcareapp.WorkoutRecordFragment
+import com.example.healthcareapp.fragment.WorkoutRecordFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.healthcareapp.ConditionCheckFragment
+import com.example.healthcareapp.fragment.ConditionCheckFragment
 
 class ViewPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapter(fragmentActivity) {
     override fun getItemCount(): Int = 2 // 탭 개수
