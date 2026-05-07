@@ -1,4 +1,4 @@
-package com.example.healthcareapp
+package com.example.healthcareapp.fragment
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,6 +10,10 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.healthcareapp.DiaryListActivity
+import com.example.healthcareapp.R
+import com.example.healthcareapp.WorkoutActivity
+import com.example.healthcareapp.WorkoutExerciseActivity
 import com.example.healthcareapp.adapter.DayAdapter
 import com.example.healthcareapp.utils.DateUtils
 import java.util.Calendar
@@ -23,7 +27,7 @@ class DiaryMainFragment : Fragment() {
     private lateinit var btnNextWeek: ImageView
     private lateinit var exersizeStart: TextView
     private lateinit var tvFolderName: TextView // 폴더 이름을 표시할 곳 (있다면)
-
+    private lateinit var Conditionbtn1 : TextView
     private lateinit var dayAdapter: DayAdapter
     private var currentCalendar = Calendar.getInstance()
 
@@ -61,6 +65,7 @@ class DiaryMainFragment : Fragment() {
     }
 
     private fun initViews(view: View) {
+        Conditionbtn1 = view.findViewById(R.id.btn_condition_check_button)
         tvWeekTitle = view.findViewById(R.id.tv_week_title)
         rvCalendar = view.findViewById(R.id.rv_calendar)
         btnPrevWeek = view.findViewById(R.id.btn_prev_week)
@@ -90,6 +95,14 @@ class DiaryMainFragment : Fragment() {
     private fun initClickListeners() {
         btnPrevWeek.setOnClickListener { moveWeek(-1) }
         btnNextWeek.setOnClickListener { moveWeek(1) }
+        Conditionbtn1.setOnClickListener{
+            val intent = Intent(requireContext(),WorkoutActivity::class.java).apply {
+                putExtra("FOLDER_ID", folderId)
+                putExtra("FOLDER_NAME",folderName)
+            }
+            startActivity(intent)
+
+        }
 
         // '운동 기록 시작' 클릭 시 DiaryListActivity로 이동
         exersizeStart.setOnClickListener {

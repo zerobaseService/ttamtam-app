@@ -1,96 +1,90 @@
 package com.example.healthcareapp
 
+import android.graphics.Typeface
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.transition.TransitionManager
+import android.util.TypedValue
 import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.example.healthcareapp.adapter.ViewPagerAdapter
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class WorkoutActivity : AppCompatActivity() {
 
-    private var isTimerRunning = false
-    private var seconds = 0
-    private val handler = Handler(Looper.getMainLooper())
-    private lateinit var timerText: TextView
-    private lateinit var btnfinish : TextView
-
-    private val timerRunnable = object : Runnable {
-        override fun run() {
-            seconds++
-            val hours = seconds / 3600
-            val minutes = (seconds % 3600) / 60
-            val secs = seconds % 60
-            timerText.text = String.format("%02d:%02d:%02d", hours, minutes, secs)
-            handler.postDelayed(this, 1000)
-        }
-    }
-
-
+    // 드롭다운 상태를 추적하기 위한 변수
+    private var isExpanded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.exercise_start)
 
-        timerText = findViewById(R.id.tv_main_timer)
-        val timerLayout = findViewById<View>(R.id.layout_timer)
+        // 1. UI 컴포넌트 연결 (상단바 및 타이머)
         val tabLayout = findViewById<TabLayout>(R.id.tab_layout)
         val viewPager = findViewById<ViewPager2>(R.id.view_pager)
-        btnfinish = findViewById(R.id.finish_btn)
-        // 뷰페이저 어댑터 설정
+        val arrowBtn = findViewById<View>(R.id.arrow_btn)
+        val tvMainTimer = findViewById<TextView>(R.id.tv_main_timer)
+        val tvStartTime = findViewById<TextView>(R.id.tv_start_time)
+        val tvEndTime = findViewById<TextView>(R.id.tv_end_time)
+        val conditionname = "컨디션 체크"
+
+
+
+        // 3. 데이터 세팅 (타이머)
+        tvMainTimer.text = "01:12:32"
+        tvStartTime.text = "16:16"
+        tvEndTime.text = "17:30"
+
+        // 4. 상태 질문 리사이클러뷰 설정 (2~5번 질문용 어댑터 연결)
+
+        // 6. 뷰페이저 어댑터 설정
         viewPager.adapter = ViewPagerAdapter(this)
 
-        // 탭과 뷰페이저 연결
+        // 7. 탭 레이아웃과 뷰페이저2 연결 (커스텀 탭 설정 유지)
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-            tab.text = when (position) {
-                0 -> "운동 기록"
-                else -> "컨디션 체크"
+            val customView = layoutInflater.inflate(R.layout.custom_tab, tabLayout, false) as TextView
+            customView.text = if (position == 0) "운동 기록" else conditionname
+
+            if (position == 0) {
+                customView.setTextColor(ContextCompat.getColor(this, R.color.black))
+                customView.setTypeface(null, Typeface.BOLD)
+            } else {
+                customView.setTextColor(ContextCompat.getColor(this, R.color.chip_selected))
+                customView.setTypeface(null, Typeface.NORMAL)
             }
+            tab.customView = customView
         }.attach()
 
-        // 타이머 제어 (Activity가 담당)
-        timerLayout.setOnClickListener {
-            if (isTimerRunning) {
-                handler.removeCallbacks(timerRunnable)
-            } else {
-                handler.post(timerRunnable)
+        // 8. 탭 선택 리스너 (텍스트 스타일 및 단위 설정 유지)
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                (tab?.customView as? TextView)?.apply {
+                    setTextColor(ContextCompat.getColor(this@WorkoutActivity, R.color.black))
+                    setTypeface(null, Typeface.BOLD)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                }
             }
-            isTimerRunning = !isTimerRunning
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+                (tab?.customView as? TextView)?.apply {
+                    setTextColor(ContextCompat.getColor(this@WorkoutActivity, R.color.chip_selected))
+                    setTypeface(null, Typeface.NORMAL)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                }
+            }
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+
+        // 9. 뒤로가기 버튼 이벤트
+        arrowBtn.setOnClickListener {
+            finish()
         }
-         // "종료" 텍스트뷰 ID
-
-        btnfinish.setOnClickListener {
-            // 타이머 정지
-            handler.removeCallbacks(timerRunnable)
-            isTimerRunning = false
-
-            // 현재 시간 구하기 (예: 14:06)
-            val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-
-            // ViewPager를 통해 ConditionCheckFragment 찾아가기
-            val fragment = supportFragmentManager.findFragmentByTag("f1") as? ConditionCheckFragment
-            // (또는 어댑터를 통해 현재 생성된 프래그먼트 인스턴스에 접근)
-
-            fragment?.addNewRecord("운동 후 컨디션 체크", currentTime)
-
-            // 탭 이동 (컨디션 체크 탭으로 자동 전환)
-            viewPager.currentItem = 1
-        }
-
-
-
-    }
-
-
-    override fun onDestroy() {
-        super.onDestroy()
-        handler.removeCallbacks(timerRunnable)
     }
 }

@@ -1,8 +1,10 @@
 package com.example.healthcareapp.adapter
 
+import android.media.Image
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.R
@@ -10,8 +12,9 @@ import com.example.healthcareapp.data.DiaryItem
 
 
 class DiaryAdapter(
-    private val items: List<DiaryItem>,           // 표시할 일지 데이터 리스트
-    private val onItemClick: (DiaryItem) -> Unit  //콜백 함수
+    private val items: MutableList<DiaryItem>,           // 표시할 일지 데이터 리스트
+    private val onItemClick: (DiaryItem) -> Unit,
+    private val onDotClick:(Int) -> Unit//콜백 함수
 ) : RecyclerView.Adapter<DiaryAdapter.ViewHolder>() {
 
 
@@ -30,7 +33,7 @@ class DiaryAdapter(
         val tvMainText: TextView = view.findViewById(R.id.tv_date)  // 상단 날짜 텍스트
         val tvSubText: TextView = view.findViewById(R.id.tv_sub)    // 하단 제목 텍스트
         val viewStripe: View = view.findViewById(R.id.view_stripe)  // 왼쪽 컬러 띠 뷰
-
+        val btnDot: ImageView = view.findViewById(R.id.exercise_dot)
         //실제 데이터를 뷰에 입히는 바인딩 함수
         fun bind(item: DiaryItem, position: Int) {
             // 데이터 설정
@@ -44,6 +47,9 @@ class DiaryAdapter(
             //  아이템 전체 클릭 리스너 설정
             itemView.setOnClickListener {
                 onItemClick(item)
+            }
+            btnDot.setOnClickListener{
+                onDotClick(adapterPosition)
             }
         }
     }

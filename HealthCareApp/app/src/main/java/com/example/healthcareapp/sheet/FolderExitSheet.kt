@@ -1,4 +1,4 @@
-package com.example.healthcareapp
+package com.example.healthcareapp.sheet
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import com.example.healthcareapp.R
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 

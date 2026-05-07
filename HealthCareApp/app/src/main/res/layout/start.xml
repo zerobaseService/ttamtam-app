@@ -39,7 +39,7 @@
         android:textSize="50sp"
         android:textStyle="bold"
         android:textColor="#53A1FF"
-        android:fontFamily="@font/changwonfont"
+        android:fontFamily="@font/waguri"
         app:layout_constraintTop_toBottomOf="@+id/logo"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

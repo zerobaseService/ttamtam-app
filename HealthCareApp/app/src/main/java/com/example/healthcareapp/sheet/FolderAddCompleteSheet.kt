@@ -1,4 +1,4 @@
-package com.example.healthcareapp
+package com.example.healthcareapp.sheet
 
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.fragment.app.DialogFragment
+import com.example.healthcareapp.R
 
 
 class FolderAddCompleteSheet : DialogFragment() {

@@ -94,16 +94,80 @@ class WorkoutFinishActivity : AppCompatActivity() {
 
     private fun setupStatusQuestions() {
         questionList = listOf(
-            StatusQuestion(1, "운동 후 평소와 다른 관절/근육\n통증이 있었나요?", "매우 심함", "통증 없음", 1,
-                mapOf(1 to "1 - 통증 없음", 5 to "5 - 약간의 뻐근함", 10 to "10 - 심한 통증")),
-            StatusQuestion(2, "오늘 운동 강도는 내 몸 상태에 적절했나요?", "너무 약함", "딱 맞았음", 5,
-                mapOf(1 to "1 - 너무 약하거나 무리", 10 to "10 - 아주 적절함")),
-            StatusQuestion(3, "운동 후 어지러움이나 불편감이 있었나요?", "매우 심했음", "전혀 없었음", 10,
-                mapOf(1 to "1 - 매우 심했음", 10 to "10 - 전혀 없었음")),
-            StatusQuestion(4, "운동 후 전반적인 기분 상태는 어떤가요?", "매우 안 좋음", "최상", 5,
-                mapOf(1 to "1 - 지치고 힘듦", 10 to "10 - 매우 상쾌함")),
-            StatusQuestion(5, "오늘 계획한 운동 목표를 달성했나요?", "거의 못 함", "초과 달성", 5,
-                mapOf(1 to "1 - 거의 못 함", 10 to "10 - 계획보다 많이 함"))
+            // 1번 질문: 통증
+            StatusQuestion(1, "운동 후 평소와 다른 관절이나\n근육 통증이 있었나요?", "매우 심함", "통증 없음", 10,
+                mapOf(
+                    1 to "1 - 매우 심함 / 일상 움직임도 힘들 정도",
+                    2 to "2 - 통증이 많이 심한 편임",
+                    3 to "3 - 통증이 뚜렷하고 불편함이 큼",
+                    4 to "4 - 통증이 꽤 느껴지고 거슬림",
+                    5 to "5 - 통증이 분명히 느껴짐",
+                    6 to "6 - 약간 신경 쓰이는 통증이 있음",
+                    7 to "7 - 가벼운 불편감이 있음",
+                    8 to "8 - 아주 약하게 느껴짐",
+                    9 to "9 - 거의 느껴지지 않음",
+                    10 to "10 - 통증 없음"
+                )),
+
+            // 2번 질문: 운동 강도 적절성
+            StatusQuestion(2, "오늘 운동 강도는 내 몸 상태에\n적절했나요?", "부족/무리", "딱 맞음", 8,
+                mapOf(
+                    1 to "1 - 너무 약하거나 무리 / 호흡, 근육, 자세 등이 안 맞음",
+                    2 to "2 - 많이 안 맞음 / 너무 쉽거나 너무 버거움",
+                    3 to "3 - 안 맞는 편 / 숨이 너무 차거나 자극이 부족했음",
+                    4 to "4 - 조금 아쉬움 / 강도가 다소 안 맞았음",
+                    5 to "5 - 무난하지만 애매 / 숨참이나 근육 피로가 부족하거나 과했음",
+                    6 to "6 - 크게 무리 없음 / 전반적으로 소화 가능했음",
+                    7 to "7 - 대체로 잘 맞음 / 숨은 차지만 자세는 유지됨",
+                    8 to "8 - 잘 맞음 / 근육 피로와 호흡이 적절했음",
+                    9 to "9 - 매우 잘 맞음 / 힘들었지만 끝까지 안정적으로 수행함",
+                    10 to "10 - 딱 맞음 / 숨참, 근육 피로, 자세 유지가 모두 적절했음"
+                )),
+
+            // 3번 질문: 어지러움 및 불편감
+            StatusQuestion(3, "운동 후 어지러움이나\n불편감이 있었나요?", "매우 심했음", "전혀 없었음", 10,
+                mapOf(
+                    1 to "1 - 매우 심했음 / 움직이기 어렵고 오래 불편했음",
+                    2 to "2 - 많이 심했음 / 한참 쉬어야 했음",
+                    3 to "3 - 심한 편이었음 / 바로 회복되지 않았음",
+                    4 to "4 - 꽤 불편했음 / 잠시 멈추고 쉬고 싶었음",
+                    5 to "5 - 분명히 느껴졌음 / 신경 쓰일 정도였음",
+                    6 to "6 - 조금 있었음 / 잠깐 불편했음",
+                    7 to "7 - 약하게 있었음 / 금방 괜찮아졌음",
+                    8 to "8 - 아주 미세했음 / 거의 신경 쓰이지 않았음",
+                    9 to "9 - 거의 없었음",
+                    10 to "10 - 전혀 없었음"
+                )),
+
+            // 4번 질문: 전반적인 기분 상태
+            StatusQuestion(4, "운동 후 전반적인 기분 상태는\n어떤가요?", "매우 안 좋음", "최상", 7,
+                mapOf(
+                    1 to "1 - 매우 안 좋음 / 많이 지치고 힘든 상태",
+                    2 to "2 - 많이 안 좋은 상태",
+                    3 to "3 - 안 좋은 편 / 피로감이 큼",
+                    4 to "4 - 다소 안 좋은 상태",
+                    5 to "5 - 보통 이하 / 썩 좋지 않음",
+                    6 to "6 - 무난한 상태",
+                    7 to "7 - 괜찮은 편 / 비교적 안정적임",
+                    8 to "8 - 좋은 편 / 몸과 마음이 가벼운 편임",
+                    9 to "9 - 매우 좋음 / 활력이 있음",
+                    10 to "10 - 최상 / 매우 개운하고 만족스러움"
+                )),
+
+            // 5번 질문: 목표 달성도 (재훈님이 주신 10단계 가이드 적용)
+            StatusQuestion(5, "오늘 계획한 운동 목표를\n달성했나요?", "거의 못 함", "초과 달성", 8,
+                mapOf(
+                    1 to "1 - 거의 못 함",
+                    2 to "2 - 조금만 함",
+                    3 to "3 - 일부만 함",
+                    4 to "4 - 절반도 못 함",
+                    5 to "5 - 절반 정도 함",
+                    6 to "6 - 절반 넘게 함",
+                    7 to "7 - 대부분 함",
+                    8 to "8 - 계획한 만큼 함",
+                    9 to "9 - 계획보다 조금 더 함",
+                    10 to "10 - 계획보다 많이 더 함"
+                ))
         )
 
         questionAdapter = StatusQuestionAdapter(questionList)
@@ -112,7 +176,6 @@ class WorkoutFinishActivity : AppCompatActivity() {
             adapter = questionAdapter
         }
     }
-
     private fun setupBodyParts() {
         // 어댑터 초기화 (빈 리스트로 시작)
         bodyPartAdapter = BodyPartAdapter(mutableListOf()) { part ->
@@ -157,16 +220,17 @@ class WorkoutFinishActivity : AppCompatActivity() {
     }
 
     private fun updateDirectionTabUI(isFront: Boolean) {
+
         if (isFront) {
             binding.btnFront.setBackgroundResource(R.drawable.bg_tab_selected)
-            binding.btnFront.setTextColor(Color.parseColor("#3A8DFF"))
+            binding.btnFront.setTextColor(Color.parseColor("#4A5768"))
             binding.btnBack.setBackgroundResource(android.R.color.transparent)
-            binding.btnBack.setTextColor(Color.parseColor("#94A3B8"))
+            binding.btnBack.setTextColor(Color.parseColor("#8896A8"))
         } else {
             binding.btnBack.setBackgroundResource(R.drawable.bg_tab_selected)
-            binding.btnBack.setTextColor(Color.parseColor("#3A8DFF"))
+            binding.btnBack.setTextColor(Color.parseColor("#4A5768"))
             binding.btnFront.setBackgroundResource(android.R.color.transparent)
-            binding.btnFront.setTextColor(Color.parseColor("#94A3B8"))
+            binding.btnFront.setTextColor(Color.parseColor("#8896A8"))
         }
     }
 
