@@ -1,5 +1,8 @@
 package com.example.zero.healthcare.service;
 
+import com.example.zero.healthcare.Entity.DiaryFolder;
+import com.example.zero.healthcare.Entity.DiaryFolderMember;
+import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.Entity.journal.BodyPart;
 import com.example.zero.healthcare.Entity.journal.BodySide;
 import com.example.zero.healthcare.Entity.journal.JournalAttachment;
@@ -14,8 +17,13 @@ import com.example.zero.healthcare.dto.journal.JournalSummaryDto;
 import com.example.zero.healthcare.dto.journal.PainRecordDto;
 import com.example.zero.healthcare.dto.journal.PostConditionDto;
 import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
+import com.example.zero.healthcare.exception.CoreException;
+import com.example.zero.healthcare.exception.common.ErrorCode;
+import com.example.zero.healthcare.exception.journal.JournalForbiddenException;
 import com.example.zero.healthcare.exception.journal.JournalNotFoundException;
 import com.example.zero.healthcare.exception.journal.PostAlreadyRecordedException;
+import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
+import com.example.zero.healthcare.repository.DiaryFolderRepository;
 import com.example.zero.healthcare.repository.JournalRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -33,11 +41,21 @@ public class JournalService {
 
     private final UserRepository userRepository;
     private final JournalRepository journalRepository;
+    private final DiaryFolderRepository folderRepository;
+    private final DiaryFolderMemberRepository memberRepository;
 
     @Transactional
     public CreateJournalResponse createJournal(Long userId, CreateJournalRequest request) {
-        userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+
+        if (request.getFolderId() != null) {
+            DiaryFolder folder = folderRepository.findById(request.getFolderId())
+                    .orElseThrow(() -> new CoreException(ErrorCode.FOLDER_NOT_FOUND));
+            memberRepository.findByFolderAndUser(folder, user)
+                    .filter(DiaryFolderMember::isActive)
+                    .orElseThrow(() -> new CoreException(ErrorCode.FORBIDDEN));
+        }
 
         WorkoutJournal journal = WorkoutJournal.builder()
                 .folderId(request.getFolderId())
@@ -67,9 +85,11 @@ public class JournalService {
     }
 
     @Transactional
-    public JournalDetailDto updatePostCondition(Long journalId, UpdateJournalPostRequest request) {
+    public JournalDetailDto updatePostCondition(Long userId, Long journalId, UpdateJournalPostRequest request) {
         WorkoutJournal journal = journalRepository.findById(journalId)
                 .orElseThrow(JournalNotFoundException::new);
+
+        verifyJournalAccess(journal, userId);
 
         if (journal.getPostRecordedAt() != null) {
             throw new PostAlreadyRecordedException();
@@ -160,9 +180,29 @@ public class JournalService {
     }
 
     @Transactional(readOnly = true)
-    public JournalDetailDto getJournalDetail(Long journalId) {
+    public JournalDetailDto getJournalDetail(Long userId, Long journalId) {
         WorkoutJournal journal = journalRepository.findById(journalId)
                 .orElseThrow(JournalNotFoundException::new);
+        verifyJournalAccess(journal, userId);
         return new JournalDetailDto(journal);
+    }
+
+    private void verifyJournalAccess(WorkoutJournal journal, Long userId) {
+        if (journal.getAuthorId().equals(userId)) {
+            return;
+        }
+        if (journal.getFolderId() != null) {
+            DiaryFolder folder = folderRepository.findById(journal.getFolderId())
+                    .orElseThrow(JournalForbiddenException::new);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(JournalForbiddenException::new);
+            boolean isActiveMember = memberRepository.findByFolderAndUser(folder, user)
+                    .map(DiaryFolderMember::isActive)
+                    .orElse(false);
+            if (isActiveMember) {
+                return;
+            }
+        }
+        throw new JournalForbiddenException();
     }
 }

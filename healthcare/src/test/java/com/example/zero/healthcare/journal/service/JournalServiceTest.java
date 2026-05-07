@@ -1,5 +1,7 @@
 package com.example.zero.healthcare.journal.service;
 
+import com.example.zero.healthcare.Entity.DiaryFolder;
+import com.example.zero.healthcare.Entity.DiaryFolderMember;
 import com.example.zero.healthcare.Entity.journal.PainTiming;
 import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
@@ -12,8 +14,13 @@ import com.example.zero.healthcare.dto.journal.PainRecordDto;
 import com.example.zero.healthcare.dto.journal.PostConditionDto;
 import com.example.zero.healthcare.dto.journal.PreConditionDto;
 import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
+import com.example.zero.healthcare.exception.CoreException;
+import com.example.zero.healthcare.exception.common.ErrorCode;
+import com.example.zero.healthcare.exception.journal.JournalForbiddenException;
 import com.example.zero.healthcare.exception.journal.JournalNotFoundException;
 import com.example.zero.healthcare.exception.journal.PostAlreadyRecordedException;
+import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
+import com.example.zero.healthcare.repository.DiaryFolderRepository;
 import com.example.zero.healthcare.repository.JournalRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import com.example.zero.healthcare.service.JournalService;
@@ -41,6 +48,8 @@ class JournalServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private JournalRepository journalRepository;
+    @Mock private DiaryFolderRepository folderRepository;
+    @Mock private DiaryFolderMemberRepository memberRepository;
     @InjectMocks private JournalService journalService;
 
     private PreConditionDto validPreCondition() {
@@ -208,7 +217,7 @@ class JournalServiceTest {
         UpdateJournalPostRequest req = new UpdateJournalPostRequest();
         req.setPostCondition(validPostCondition());
 
-        JournalDetailDto result = journalService.updatePostCondition(1L, req);
+        JournalDetailDto result = journalService.updatePostCondition(1L, 1L, req);
 
         assertThat(result).isNotNull();
     }
@@ -226,7 +235,7 @@ class JournalServiceTest {
                 "https://cdn.ttamtam.app/img1.jpg"
         ));
 
-        journalService.updatePostCondition(1L, req);
+        journalService.updatePostCondition(1L, 1L, req);
 
         assertThat(journal.getAttachments()).hasSize(2);
         assertThat(journal.getAttachments().get(0).getImageUrl()).isEqualTo("https://cdn.ttamtam.app/img0.jpg");
@@ -244,7 +253,7 @@ class JournalServiceTest {
         req.setPostCondition(validPostCondition());
         req.setPainRecords(List.of(new PainRecordDto("SHOULDER", "LEFT", 5)));
 
-        journalService.updatePostCondition(1L, req);
+        journalService.updatePostCondition(1L, 1L, req);
 
         assertThat(journal.getPainRecords())
                 .hasSize(1)
@@ -261,7 +270,7 @@ class JournalServiceTest {
         UpdateJournalPostRequest req = new UpdateJournalPostRequest();
         req.setPostCondition(validPostCondition());
 
-        assertThatThrownBy(() -> journalService.updatePostCondition(1L, req))
+        assertThatThrownBy(() -> journalService.updatePostCondition(1L, 1L, req))
                 .isInstanceOf(PostAlreadyRecordedException.class);
     }
 
@@ -273,8 +282,230 @@ class JournalServiceTest {
         UpdateJournalPostRequest req = new UpdateJournalPostRequest();
         req.setPostCondition(validPostCondition());
 
-        assertThatThrownBy(() -> journalService.updatePostCondition(999L, req))
+        assertThatThrownBy(() -> journalService.updatePostCondition(1L, 999L, req))
                 .isInstanceOf(JournalNotFoundException.class);
+    }
+
+    // ─── PHASE S1: getJournalDetail 권한 검증 ─────────────────────────────────
+
+    @Test
+    @DisplayName("본인 일지 상세 조회 시 JournalDetailDto를 반환한다")
+    void getJournalDetail_ownJournal_returnsDetail() {
+        WorkoutJournal journal = stubSavedJournal(validDate()); // authorId=1L
+        given(journalRepository.findById(42L)).willReturn(Optional.of(journal));
+
+        JournalDetailDto result = journalService.getJournalDetail(1L, 42L);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("다른 사용자 일지(folderId=null) 조회 시 JournalForbiddenException을 던진다")
+    void getJournalDetail_otherUserJournal_noFolder_throwsForbidden() {
+        WorkoutJournal journal = stubSavedJournal(validDate()); // authorId=1L, folderId=null
+        given(journalRepository.findById(42L)).willReturn(Optional.of(journal));
+
+        assertThatThrownBy(() -> journalService.getJournalDetail(2L, 42L))
+                .isInstanceOf(JournalForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("같은 폴더 활성 멤버는 다른 사용자의 일지를 조회할 수 있다")
+    void getJournalDetail_otherUserJournal_sameFolderActiveMember_returnsDetail() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .preJointMusclePain(5).preSleepHours(7)
+                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
+                .build();
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        User user2 = new User("other@b.com", "token2", "other");
+        DiaryFolderMember activeMember = DiaryFolderMember.join(folder, user2);
+
+        given(journalRepository.findById(42L)).willReturn(Optional.of(journal));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(activeMember));
+
+        JournalDetailDto result = journalService.getJournalDetail(2L, 42L);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("같은 폴더를 나간 멤버는 다른 사용자의 일지를 조회할 수 없다")
+    void getJournalDetail_otherUserJournal_sameFolderInactiveMember_throwsForbidden() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .preJointMusclePain(5).preSleepHours(7)
+                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
+                .build();
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        User user2 = new User("other@b.com", "token2", "other");
+        DiaryFolderMember inactiveMember = DiaryFolderMember.join(folder, user2);
+        inactiveMember.leave();
+
+        given(journalRepository.findById(42L)).willReturn(Optional.of(journal));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(inactiveMember));
+
+        assertThatThrownBy(() -> journalService.getJournalDetail(2L, 42L))
+                .isInstanceOf(JournalForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("폴더 멤버가 아닌 사용자는 폴더 일지를 조회할 수 없다")
+    void getJournalDetail_otherUserJournal_notAMember_throwsForbidden() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .preJointMusclePain(5).preSleepHours(7)
+                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
+                .build();
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        User user2 = new User("other@b.com", "token2", "other");
+
+        given(journalRepository.findById(42L)).willReturn(Optional.of(journal));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> journalService.getJournalDetail(2L, 42L))
+                .isInstanceOf(JournalForbiddenException.class);
+    }
+
+    // ─── PHASE S2: updatePostCondition 권한 검증 ──────────────────────────────
+
+    @Test
+    @DisplayName("다른 사용자 일지(폴더 없음)에 updatePostCondition 시 JournalForbiddenException을 던진다")
+    void updatePostCondition_otherUser_noFolder_throwsForbidden() {
+        WorkoutJournal journal = stubSavedJournal(validDate()); // authorId=1L, folderId=null
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
+        req.setPostCondition(validPostCondition());
+
+        assertThatThrownBy(() -> journalService.updatePostCondition(2L, 1L, req))
+                .isInstanceOf(JournalForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("같은 폴더 활성 멤버는 다른 사용자의 일지에 updatePostCondition 가능")
+    void updatePostCondition_otherUser_sameFolderActiveMember_succeeds() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .preJointMusclePain(5).preSleepHours(7)
+                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
+                .build();
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        User user2 = new User("other@b.com", "token2", "other");
+        DiaryFolderMember activeMember = DiaryFolderMember.join(folder, user2);
+
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(activeMember));
+
+        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
+        req.setPostCondition(validPostCondition());
+
+        JournalDetailDto result = journalService.updatePostCondition(2L, 1L, req);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("같은 폴더를 나간 멤버는 다른 사용자의 일지에 updatePostCondition 불가")
+    void updatePostCondition_otherUser_sameFolderInactiveMember_throwsForbidden() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .preJointMusclePain(5).preSleepHours(7)
+                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
+                .build();
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        User user2 = new User("other@b.com", "token2", "other");
+        DiaryFolderMember inactiveMember = DiaryFolderMember.join(folder, user2);
+        inactiveMember.leave();
+
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(inactiveMember));
+
+        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
+        req.setPostCondition(validPostCondition());
+
+        assertThatThrownBy(() -> journalService.updatePostCondition(2L, 1L, req))
+                .isInstanceOf(JournalForbiddenException.class);
+    }
+
+    // ─── PHASE S3: createJournal 폴더 멤버십 검증 ─────────────────────────────
+
+    @Test
+    @DisplayName("createJournal - folderId가 있고 폴더 멤버가 아니면 FORBIDDEN을 던진다")
+    void createJournal_withFolderIdNotMember_throwsForbidden() {
+        User user = new User("a@b.com", "t", "n");
+        DiaryFolder folder = DiaryFolder.create("test folder");
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(memberRepository.findByFolderAndUser(folder, user)).willReturn(Optional.empty());
+
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null);
+
+        assertThatThrownBy(() -> journalService.createJournal(1L, req))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN));
+    }
+
+    @Test
+    @DisplayName("createJournal - folderId가 있고 비활성 멤버이면 FORBIDDEN을 던진다")
+    void createJournal_withFolderIdInactiveMember_throwsForbidden() {
+        User user = new User("a@b.com", "t", "n");
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        DiaryFolderMember inactiveMember = DiaryFolderMember.join(folder, user);
+        inactiveMember.leave();
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(memberRepository.findByFolderAndUser(folder, user)).willReturn(Optional.of(inactiveMember));
+
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null);
+
+        assertThatThrownBy(() -> journalService.createJournal(1L, req))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN));
+    }
+
+    @Test
+    @DisplayName("createJournal - folderId가 있고 활성 멤버이면 성공한다")
+    void createJournal_withFolderIdActiveMember_succeeds() {
+        User user = new User("a@b.com", "t", "n");
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        DiaryFolderMember activeMember = DiaryFolderMember.join(folder, user);
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(memberRepository.findByFolderAndUser(folder, user)).willReturn(Optional.of(activeMember));
+        given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
+
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null);
+
+        CreateJournalResponse response = journalService.createJournal(1L, req);
+
+        assertThat(response).isNotNull();
+    }
+
+    @Test
+    @DisplayName("createJournal - folderId가 없으면 폴더 검증 없이 성공한다")
+    void createJournal_withoutFolderId_noFolderCheck_succeeds() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
+
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null);
+
+        CreateJournalResponse response = journalService.createJournal(1L, req);
+
+        assertThat(response).isNotNull();
     }
 
     @Test

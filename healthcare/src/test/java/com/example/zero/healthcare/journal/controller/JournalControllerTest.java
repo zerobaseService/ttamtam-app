@@ -1,7 +1,11 @@
 package com.example.zero.healthcare.journal.controller;
 
+import com.example.zero.healthcare.Entity.DiaryFolder;
+import com.example.zero.healthcare.Entity.DiaryFolderMember;
 import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.auth.JwtTokenProvider;
+import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
+import com.example.zero.healthcare.repository.DiaryFolderRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import java.util.UUID;
@@ -29,6 +33,8 @@ class JournalControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository userRepository;
     @Autowired private JwtTokenProvider jwtTokenProvider;
+    @Autowired private DiaryFolderRepository folderRepository;
+    @Autowired private DiaryFolderMemberRepository memberRepository;
 
     private Long userId;
     private String bearerToken;
@@ -545,5 +551,151 @@ class JournalControllerTest {
                         .content(body))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("JOURNAL_NOT_FOUND"));
+    }
+
+    // ─── PHASE S1: GET 엔드포인트 권한 검증 ───────────────────────────────────
+
+    @Test
+    @DisplayName("JWT의 userId 기준으로 조회되며 query param userId는 무시된다")
+    void getMyJournals_usesJwtUserId_ignoresQueryParam() throws Exception {
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"workoutDate": "2026-04-20",
+                                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                                   "previousFatigue": 4, "overallCondition": 8}}"""))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .param("userId", "99999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("JWT 없이 일지 목록 조회 시 401을 반환한다")
+    void getMyJournals_withoutJwt_returns401() throws Exception {
+        mockMvc.perform(get("/api/journals"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("본인 일지 상세 조회 시 200을 반환한다")
+    void getJournalDetail_ownJournal_returns200() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        mockMvc.perform(get("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 일지(폴더 없음) 상세 조회 시 403을 반환한다")
+    void getJournalDetail_otherUserJournal_returns403() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        User userB = userRepository.save(new User("ctrl-other-" + UUID.randomUUID() + "@test.com", "token", "other"));
+        String tokenB = "Bearer " + jwtTokenProvider.generateToken(userB.getId());
+
+        mockMvc.perform(get("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, tokenB))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("JOURNAL_FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 일지 상세 조회 시 404를 반환한다")
+    void getJournalDetail_unknownJournal_returns404() throws Exception {
+        mockMvc.perform(get("/api/journals/99999999")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("JOURNAL_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("JWT 없이 일지 상세 조회 시 401을 반환한다")
+    void getJournalDetail_withoutJwt_returns401() throws Exception {
+        mockMvc.perform(get("/api/journals/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ─── PHASE S2: 수정 엔드포인트 권한 검증 ──────────────────────────────────
+
+    @Test
+    @DisplayName("다른 사용자의 일지(폴더 없음)에 PATCH /post 시 403을 반환한다")
+    void updatePost_otherUserJournal_noFolder_returns403() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        User userB = userRepository.save(new User("ctrl-other-" + UUID.randomUUID() + "@test.com", "token", "other"));
+        String tokenB = "Bearer " + jwtTokenProvider.generateToken(userB.getId());
+
+        String body = """
+                {
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  }
+                }""";
+
+        mockMvc.perform(patch("/api/journals/" + journalId + "/post")
+                        .header(HttpHeaders.AUTHORIZATION, tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("JOURNAL_FORBIDDEN"));
+    }
+
+    // ─── PHASE S3: createJournal 폴더 멤버십 검증 ─────────────────────────────
+
+    @Test
+    @DisplayName("가입하지 않은 folderId로 일지 생성 시 403을 반환한다")
+    void create_folderNotMember_returns403() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "folderId": %d,
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  }
+                }""".formatted(folder.getId());
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("활성 멤버인 folderId로 일지 생성 시 201을 반환한다")
+    void create_folderActiveMember_returns201() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+        User user = userRepository.findById(userId).orElseThrow();
+        memberRepository.save(DiaryFolderMember.join(folder, user));
+
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "folderId": %d,
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  }
+                }""".formatted(folder.getId());
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true));
     }
 }

@@ -48,9 +48,10 @@ public class JournalController {
     @Operation(summary = "운동 후 기록 추가 (PATCH)")
     @PatchMapping("/{id}/post")
     public ResponseEntity<ApiResponse<JournalDetailDto>> updatePost(
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long id,
             @Valid @RequestBody UpdateJournalPostRequest request) {
-        JournalDetailDto data = journalService.updatePostCondition(id, request);
+        JournalDetailDto data = journalService.updatePostCondition(userId, id, request);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -66,7 +67,7 @@ public class JournalController {
     @Operation(summary = "사용자 일지 목록 조회 (date 또는 from+to로 필터링 가능)")
     @GetMapping
     public ResponseEntity<ApiResponse<List<JournalSummaryDto>>> getMyJournals(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
@@ -76,8 +77,10 @@ public class JournalController {
 
     @Operation(summary = "일지 상세 조회")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<JournalDetailDto>> getJournalDetail(@PathVariable Long id) {
-        JournalDetailDto data = journalService.getJournalDetail(id);
+    public ResponseEntity<ApiResponse<JournalDetailDto>> getJournalDetail(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long id) {
+        JournalDetailDto data = journalService.getJournalDetail(userId, id);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 }
