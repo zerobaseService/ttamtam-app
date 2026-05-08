@@ -13,18 +13,20 @@ import com.example.zero.healthcare.dto.folder.InviteAcceptRequest;
 import com.example.zero.healthcare.dto.folder.InviteLinkResponse;
 import com.example.zero.healthcare.exception.CoreException;
 import com.example.zero.healthcare.exception.common.ErrorCode;
-import com.example.zero.healthcare.client.AirbridgeTrackingLinkClient;
 import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
 import com.example.zero.healthcare.repository.DiaryFolderRepository;
 import com.example.zero.healthcare.repository.InviteRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import com.example.zero.healthcare.util.CursorUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +42,9 @@ public class DiaryFolderService {
     private final DiaryFolderMemberRepository memberRepository;
     private final InviteRepository inviteRepository;
     private final UserRepository userRepository;
-    private final AirbridgeTrackingLinkClient airbridgeClient;
+
+    @Value("${app.invite-web-base-url:https://ttam-ttam-web.vercel.app}")
+    private String inviteWebBaseUrl;
 
     // Disallow control chars, newlines, tabs — allow everything else (emoji, space, etc.)
     private static final Pattern INVALID_CHARS = Pattern.compile("[\\p{Cntrl}]");
@@ -171,10 +175,13 @@ public class DiaryFolderService {
         Invite invite = Invite.create(folder, tokenHash);
         inviteRepository.save(invite);
 
-        String encodedName = java.net.URLEncoder.encode(folder.getName(), java.nio.charset.StandardCharsets.UTF_8);
-        String deeplink = "ttdev://invite?folderId=" + folderId + "&token=" + rawToken + "&folderName=" + encodedName;
-        String trackingLink = airbridgeClient.createTrackingLink(deeplink);
-        return new InviteLinkResponse(trackingLink);
+        String encodedToken = URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
+        String encodedName = URLEncoder.encode(folder.getName(), StandardCharsets.UTF_8);
+        String inviteLink = normalizeBaseUrl(inviteWebBaseUrl)
+                + "/?token=" + encodedToken
+                + "&folderId=" + folderId
+                + "&folderName=" + encodedName;
+        return new InviteLinkResponse(inviteLink);
     }
 
     @Transactional
@@ -216,5 +223,12 @@ public class DiaryFolderService {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
+    }
+
+    private String normalizeBaseUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return "https://ttam-ttam-web.vercel.app";
+        }
+        return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 }

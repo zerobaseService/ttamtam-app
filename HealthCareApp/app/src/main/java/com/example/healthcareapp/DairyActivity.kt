@@ -1,11 +1,13 @@
 package com.example.healthcareapp
 
+
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
+import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.adapter.DayAdapter
@@ -25,13 +27,13 @@ class DiaryActivity : AppCompatActivity() {
     private var folderName: String? = null
     private lateinit var dayAdapter: DayAdapter       // 날짜를 표시할 어댑터
     private var currentCalendar = Calendar.getInstance() // 현재 날짜 정보를 가진 캘린더 객체
-
+    private lateinit var conditionButton : TextView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.calendarbar) // 캘린더바 레이아웃 연결
         folderId = intent.getLongExtra("FOLDER_ID", -1L)
         folderName = intent.getStringExtra("FOLDER_NAME")
-        // 1. 뷰들을 ID와 연결하여 초기화
+        // 1. 뷰들을 ID와 연결하여 초기a화
         initViews()
 
         // 2. 캘린더 리사이클러뷰와 어댑터 설정
@@ -42,6 +44,7 @@ class DiaryActivity : AppCompatActivity() {
 
     }
 
+
     // findViewById를 통해 XML의 뷰들을 연결하는 함수
     private fun initViews() {
         tvWeekTitle = findViewById(R.id.tv_week_title)
@@ -49,6 +52,7 @@ class DiaryActivity : AppCompatActivity() {
         btnPrevWeek = findViewById(R.id.btn_prev_week)
         btnNextWeek = findViewById(R.id.btn_next_week)
         exersizeStart = findViewById(R.id.exercise_start)
+        conditionButton = findViewById(R.id.btn_condition_check_button)
     }
 
     // 캘린더 초기 세팅 함수
@@ -73,6 +77,8 @@ class DiaryActivity : AppCompatActivity() {
                 dayAdapter.notifyDataSetChanged()
             }
         }
+
+
     }
 
     // 클릭 리스너들을 모아놓은 함수
@@ -87,12 +93,23 @@ class DiaryActivity : AppCompatActivity() {
             moveWeek(1)
         }
 
-        // '운동 기록 시작' 버튼 클릭 시 DiaryListActivity(일지 목록 화면)로 이동
-        // '운동 기록 시작' 버튼 클릭 시 정보를 가지고 DiaryListActivity로 이동
+
+        conditionButton.setOnClickListener{
+            android.util.Log.d("JaehoonLog", "컨디션 버튼 클릭됨")
+            val intent1 = Intent(this, DiaryListActivity::class.java).apply {
+                putExtra("FOLDER_ID", folderId)
+                putExtra("FOLDER_NAME", folderName)
+            }
+            startActivity(intent1)
+        }
+
+
+
         exersizeStart.setOnClickListener {
-            val intent = Intent(this, DiaryListActivity::class.java).apply {
-                putExtra("FOLDER_ID", folderId)      // 받은 ID를 그대로 전달
-                putExtra("FOLDER_NAME", folderName)  // 받은 이름을 그대로 전달
+
+            val intent = Intent(this, WorkoutExerciseActivity::class.java).apply {
+                putExtra("FOLDER_ID", folderId)      // 폴더 ID 전달
+                putExtra("FOLDER_NAME", folderName)  // 폴더 이름 전달
             }
             startActivity(intent)
         }

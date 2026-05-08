@@ -7,6 +7,9 @@ import android.os.Bundle
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import com.example.healthcareapp.fragment.DiaryMainFragment
+import com.example.healthcareapp.fragment.FolderMainFragment
+import com.example.healthcareapp.fragment.MyPageFragment
 
 class HomeActivity : AppCompatActivity() {
 
@@ -42,6 +45,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         tabMy.setOnClickListener {
+            replaceFragment(MyPageFragment())
             // 마이페이지 프래그먼트가 있다면 여기에 replaceFragment(MyPageFragment()) 추가
             updateTabUI(tabMy)
         }

@@ -1,5 +1,6 @@
 package com.example.healthcareapp
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -80,19 +81,35 @@ class MainActivity : ComponentActivity() {
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     val user = auth.currentUser
-                    //Toast.makeText(this, "${user?.displayName}님, 환영합니다!", Toast.LENGTH_SHORT).show()
+                    val email = user?.email ?: ""
+                    val name = user?.displayName ?: ""
 
-                    // 토큰을 전달
+                    // 1. SharedPreferences에 이메일 영구 저장
+                    saveUserEmail(email)
+
+                    Log.d("FirebaseAuth", "로그인 성공: $email")
+
+                    // 2. 다음 화면으로 이동
                     val intent = Intent(this, LoadingActivity::class.java)
                     intent.putExtra("ID_TOKEN", idToken)
-                    intent.putExtra("USER_EMAIL", user?.email ?: "") // 이메일 추가
-                    intent.putExtra("USER_NAME", user?.displayName ?: "")
+                    intent.putExtra("USER_EMAIL", email)
+                    intent.putExtra("USER_NAME", name)
                     startActivity(intent)
-                   // finish()
+                    finish() // 로그인 완료 후 메인으로 못 돌아오게 종료
                 } else {
                     Log.e("FirebaseAuth", "인증 실패: ${task.exception?.message}")
                     Toast.makeText(this, "인증 실패: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }
     }
+
+    // 이메일 저장 함수
+    private fun saveUserEmail(email: String) {
+        val sharedPref = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putString("USER_EMAIL", email)
+            apply() // 비동기로 데이터 저장
+        }
+    }
 }
+

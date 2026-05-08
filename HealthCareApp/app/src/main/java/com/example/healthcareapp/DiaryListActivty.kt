@@ -12,6 +12,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.adapter.DayAdapter
 import com.example.healthcareapp.adapter.DiaryAdapter
 import com.example.healthcareapp.data.DiaryItem
+import com.example.healthcareapp.sheet.FolderExitSheet
+import com.example.healthcareapp.sheet.FolderExitSheet2
 import com.example.healthcareapp.utils.DateUtils
 import java.util.Calendar
 
@@ -68,13 +70,32 @@ class DiaryListActivity : AppCompatActivity() {
 
     // 하단 일지 리스트(RecyclerView) 설정
     private fun setupDiaryList() {
-        rvDiaryList.layoutManager = LinearLayoutManager(this) // 세로 방향으로 배치
+        rvDiaryList.layoutManager = LinearLayoutManager(this)
 
-        // DiaryAdapter 초기화: 아이템 클릭 시 토스트 메시지를 띄우는 익명 함수 포함
-        diaryAdapter = DiaryAdapter(dummyDiaryList) { item ->
-            Toast.makeText(this, "${item.title} 일지를 확인합니다.", Toast.LENGTH_SHORT).show()
-        }
-        rvDiaryList.adapter = diaryAdapter // 리사이클러뷰에 어댑터 장착
+        diaryAdapter = DiaryAdapter(
+            items = dummyDiaryList, // 여기서 dummyDiaryList는 ArrayList여야 합니다.
+            onItemClick = { item ->
+                Toast.makeText(this, "${item.title} 확인", Toast.LENGTH_SHORT).show()
+            },
+            onDotClick = { position -> // 👈 몇 번째 아이템인지 순서(position)를 받습니다.
+                // 1. 리스트에서 해당 데이터 삭제
+                val exitSheet = FolderExitSheet2(
+                    folderName = tvFolderName.text.toString(),
+                    onExitConfirm = {
+                        // 2. 나가기 확정 시 실행될 로직
+                        dummyDiaryList.removeAt(position)
+                        diaryAdapter.notifyItemRemoved(position)
+                        diaryAdapter.notifyItemRangeChanged(position, dummyDiaryList.size)
+
+                        Toast.makeText(this, "폴더에서 나갔습니다.", Toast.LENGTH_SHORT).show()
+                    }
+                )
+
+                // 3. 바텀시트 띄우기
+                exitSheet.show(supportFragmentManager, "FolderExitSheet")
+            }
+        )
+        rvDiaryList.adapter = diaryAdapter
     }
 
     // 상단 주간 날짜바(RecyclerView) 설정 함수
@@ -93,6 +114,35 @@ class DiaryListActivity : AppCompatActivity() {
             post { dayAdapter.notifyDataSetChanged() } // 화면이 그려진 후 데이터 새로고침
         }
     }
+//    private fun showExitBottomSheet(position: Int) {
+//        // 1. BottomSheetDialog 객체 생성
+//        val bottomSheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+//
+//        // 2. 작성하신 XML 레이아웃 인플레이트
+//        val view = layoutInflater.inflate(R.layout.folder_exit_sheet, null) // 파일명이 bottom_sheet_exit라고 가정
+//        bottomSheet.setContentView(view)
+//
+//        // 3. 바텀시트 내 버튼 연결
+//        val btnClose = view.findViewById<ImageView>(R.id.btn_close_exit)
+//        val btnRealExit = view.findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btn_real_exit)
+//        val btnStay = view.findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btn_stay)
+//
+//        // X 버튼이나 머물기 버튼 클릭 시 닫기
+//        btnClose.setOnClickListener { bottomSheet.dismiss() }
+//        btnStay.setOnClickListener { bottomSheet.dismiss() }
+//
+//        // 실제 나가기 버튼 클릭 시 리스트에서 제거
+//        btnRealExit.setOnClickListener {
+//            dummyDiaryList.removeAt(position)
+//            diaryAdapter.notifyItemRemoved(position)
+//            diaryAdapter.notifyItemRangeChanged(position, dummyDiaryList.size)
+//
+//            bottomSheet.dismiss() // 동작 완료 후 닫기
+//            Toast.makeText(this, "폴더에서 나갔습니다.", Toast.LENGTH_SHORT).show()
+//        }
+//
+//        bottomSheet.show()
+//    }
 
     // 각종 클릭 이벤트 설정 함수
     private fun initClickListeners() {
@@ -104,9 +154,9 @@ class DiaryListActivity : AppCompatActivity() {
         btnNextWeek.setOnClickListener { moveWeek(1) }
 
         // 플러스(+) 버튼 클릭 시 새 일지 작성 안내
-        btnPlus.setOnClickListener {
-            Toast.makeText(this, "새 일지 작성 페이지로 이동", Toast.LENGTH_SHORT).show()
-        }
+//        btnPlus.setOnClickListener {
+//
+//        }
     }
 
     // 주간 이동 로직 함수
