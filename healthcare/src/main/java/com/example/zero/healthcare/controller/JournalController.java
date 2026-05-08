@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 // import org.springframework.web.bind.annotation.PatchMapping; // 미사용
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -74,4 +75,12 @@ public class JournalController {
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
+    @Operation(summary = "일지 soft-delete (작성자 본인만)")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long id) {
+        journalService.deleteJournal(userId, id);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
 }

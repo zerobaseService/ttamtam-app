@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -712,6 +713,62 @@ class JournalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.startedAt").exists())
                 .andExpect(jsonPath("$.data.totalDurationSeconds").value(3600));
+    }
+
+    // ─── DELETE /{id} soft-delete ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("작성자가 DELETE /{id} 요청 시 200을 반환하고, 이후 GET /{id}는 404를 반환한다")
+    void deleteJournal_byAuthor_returns200AndSoftDeletes() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        mockMvc.perform(delete("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("JOURNAL_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("다른 사용자가 DELETE /{id} 요청 시 403을 반환한다")
+    void deleteJournal_byOtherUser_returns403() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        User userB = userRepository.save(new User("delete-other-" + UUID.randomUUID() + "@test.com", "token", "other"));
+        String tokenB = "Bearer " + jwtTokenProvider.generateToken(userB.getId());
+
+        mockMvc.perform(delete("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, tokenB))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("JOURNAL_FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 id로 DELETE 요청 시 404를 반환한다")
+    void deleteJournal_nonExistentId_returns404() throws Exception {
+        mockMvc.perform(delete("/api/journals/999999999")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("JOURNAL_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("이미 삭제된 일지를 재삭제 시 404를 반환한다")
+    void deleteJournal_alreadyDeleted_returns404() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        mockMvc.perform(delete("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("JOURNAL_NOT_FOUND"));
     }
 
     @Test
