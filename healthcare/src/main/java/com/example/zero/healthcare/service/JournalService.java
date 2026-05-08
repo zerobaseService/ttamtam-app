@@ -229,6 +229,16 @@ public class JournalService {
         return new JournalDetailDto(journal);
     }
 
+    @Transactional
+    public void deleteJournal(Long userId, Long journalId) {
+        WorkoutJournal journal = journalRepository.findById(journalId)
+                .orElseThrow(JournalNotFoundException::new);
+        if (!journal.getAuthorId().equals(userId)) {
+            throw new JournalForbiddenException();
+        }
+        journalRepository.softDeleteById(journalId);
+    }
+
     private void verifyJournalAccess(WorkoutJournal journal, Long userId) {
         if (journal.getAuthorId().equals(userId)) {
             return;

@@ -765,6 +765,50 @@ class JournalServiceTest {
         assertThat(captor.getValue().getStartedAt()).isEqualTo(startedAt);
     }
 
+    // ─── deleteJournal ───────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("작성자가 삭제하면 journalRepository.softDeleteById가 호출된다")
+    void deleteJournal_byAuthor_callsSoftDeleteById() {
+        WorkoutJournal journal = stubSavedJournal(validDate());
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        journalService.deleteJournal(1L, 1L);
+
+        verify(journalRepository).softDeleteById(1L);
+    }
+
+    @Test
+    @DisplayName("폴더 멤버라도 작성자가 아니면 JournalForbiddenException을 던진다")
+    void deleteJournal_byNonAuthorFolderMember_throwsForbidden() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .build();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        assertThatThrownBy(() -> journalService.deleteJournal(2L, 1L))
+                .isInstanceOf(JournalForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("무관계 사용자가 삭제 시도하면 JournalForbiddenException을 던진다")
+    void deleteJournal_byOtherUser_throwsForbidden() {
+        WorkoutJournal journal = stubSavedJournal(validDate());
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        assertThatThrownBy(() -> journalService.deleteJournal(2L, 1L))
+                .isInstanceOf(JournalForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 journalId로 삭제 시 JournalNotFoundException을 던진다")
+    void deleteJournal_nonExistentJournal_throwsNotFound() {
+        given(journalRepository.findById(999L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> journalService.deleteJournal(1L, 999L))
+                .isInstanceOf(JournalNotFoundException.class);
+    }
+
     @Test
     @DisplayName("updatePostCondition은 totalDurationSeconds를 Journal에 기록한다")
     void updatePostCondition_recordsTotalDurationSeconds() {
