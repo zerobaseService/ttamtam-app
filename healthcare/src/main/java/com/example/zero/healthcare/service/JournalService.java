@@ -1,21 +1,36 @@
 package com.example.zero.healthcare.service;
 
+import com.example.zero.healthcare.Entity.DiaryFolder;
+import com.example.zero.healthcare.Entity.DiaryFolderMember;
+import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.Entity.journal.BodyPart;
 import com.example.zero.healthcare.Entity.journal.BodySide;
 import com.example.zero.healthcare.Entity.journal.JournalAttachment;
 import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
+import com.example.zero.healthcare.Entity.journal.JournalPostCondition;
+import com.example.zero.healthcare.Entity.journal.JournalPreCondition;
 import com.example.zero.healthcare.Entity.journal.PainTiming;
+import com.example.zero.healthcare.Entity.journal.WorkoutExercise;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
+import com.example.zero.healthcare.Entity.journal.WorkoutSet;
 import com.example.zero.healthcare.dto.journal.CompleteJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
+import com.example.zero.healthcare.dto.journal.ExerciseDto;
 import com.example.zero.healthcare.dto.journal.JournalDetailDto;
 import com.example.zero.healthcare.dto.journal.JournalSummaryDto;
 import com.example.zero.healthcare.dto.journal.PainRecordDto;
 import com.example.zero.healthcare.dto.journal.PostConditionDto;
+import com.example.zero.healthcare.dto.journal.SetDto;
 import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
+import com.example.zero.healthcare.exception.CoreException;
+import com.example.zero.healthcare.exception.common.ErrorCode;
+import com.example.zero.healthcare.exception.journal.JournalForbiddenException;
 import com.example.zero.healthcare.exception.journal.JournalNotFoundException;
 import com.example.zero.healthcare.exception.journal.PostAlreadyRecordedException;
+import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
+import com.example.zero.healthcare.repository.DiaryFolderRepository;
+import com.example.zero.healthcare.repository.JournalPostConditionRepository;
 import com.example.zero.healthcare.repository.JournalRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -33,22 +48,32 @@ public class JournalService {
 
     private final UserRepository userRepository;
     private final JournalRepository journalRepository;
+    private final JournalPostConditionRepository postConditionRepository;
+    private final DiaryFolderRepository folderRepository;
+    private final DiaryFolderMemberRepository memberRepository;
 
     @Transactional
     public CreateJournalResponse createJournal(Long userId, CreateJournalRequest request) {
-        userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+
+        if (request.getFolderId() != null) {
+            DiaryFolder folder = folderRepository.findById(request.getFolderId())
+                    .orElseThrow(() -> new CoreException(ErrorCode.FOLDER_NOT_FOUND));
+            memberRepository.findByFolderAndUser(folder, user)
+                    .filter(DiaryFolderMember::isActive)
+                    .orElseThrow(() -> new CoreException(ErrorCode.FORBIDDEN));
+        }
 
         WorkoutJournal journal = WorkoutJournal.builder()
                 .folderId(request.getFolderId())
                 .authorId(userId)
                 .workoutDate(request.getWorkoutDate())
-                .preJointMusclePain(request.getPreCondition().getJointMusclePain())
-                .preSleepHours(request.getPreCondition().getSleepHours())
-                .preSleepQuality(request.getPreCondition().getSleepQuality())
-                .prePreviousFatigue(request.getPreCondition().getPreviousFatigue())
-                .preOverallCondition(request.getPreCondition().getOverallCondition())
+                .startedAt(request.getStartedAt())
                 .build();
+
+        JournalPreCondition pre = JournalPreCondition.of(journal, request.getPreCondition());
+        journal.setPreCondition(pre);
 
         List<PainRecordDto> painRecords = request.getPainRecords();
         if (painRecords != null) {
@@ -67,47 +92,84 @@ public class JournalService {
     }
 
     @Transactional
-    public JournalDetailDto updatePostCondition(Long journalId, UpdateJournalPostRequest request) {
+    public JournalDetailDto updatePostCondition(Long userId, Long journalId, UpdateJournalPostRequest request) {
         WorkoutJournal journal = journalRepository.findById(journalId)
                 .orElseThrow(JournalNotFoundException::new);
 
-        if (journal.getPostRecordedAt() != null) {
+        verifyJournalAccess(journal, userId);
+
+        if (journal.isCompleted()) {
             throw new PostAlreadyRecordedException();
         }
 
         applyPostFinalize(journal, request.getPostCondition(), request.getPainRecords(),
-                request.getContent(), request.getImageUrls());
+                request.getContent(), request.getImageUrls(), request.getTotalDurationSeconds());
 
         return new JournalDetailDto(journal);
     }
 
     @Transactional
     public JournalDetailDto completeByLookup(Long userId, CompleteJournalRequest request) {
-        userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
 
+        if (request.getFolderId() != null) {
+            DiaryFolder folder = folderRepository.findById(request.getFolderId())
+                    .orElseThrow(() -> new CoreException(ErrorCode.FOLDER_NOT_FOUND));
+            memberRepository.findByFolderAndUser(folder, user)
+                    .filter(DiaryFolderMember::isActive)
+                    .orElseThrow(() -> new CoreException(ErrorCode.FORBIDDEN));
+        }
+
         WorkoutJournal journal = journalRepository
-                .findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
-                        userId, request.getWorkoutDate())
-                .orElseThrow(JournalNotFoundException::new);
+                .findFirstPreOnlyJournal(userId, request.getWorkoutDate())
+                .orElseGet(() -> {
+                    WorkoutJournal newJournal = WorkoutJournal.builder()
+                            .authorId(userId)
+                            .workoutDate(request.getWorkoutDate())
+                            .folderId(request.getFolderId())
+                            .startedAt(request.getStartedAt())
+                            .build();
+                    return journalRepository.save(newJournal);
+                });
 
         applyPostFinalize(journal, request.getPostCondition(), request.getPainRecords(),
-                request.getContent(), request.getImageUrls());
+                request.getContent(), request.getImageUrls(), request.getTotalDurationSeconds());
+
+        List<ExerciseDto> exercises = request.getExercises();
+        if (exercises != null) {
+            for (ExerciseDto exerciseDto : exercises) {
+                WorkoutExercise exercise = WorkoutExercise.builder()
+                        .exerciseName(exerciseDto.getExerciseName())
+                        .displayOrder(exerciseDto.getDisplayOrder() != null ? exerciseDto.getDisplayOrder() : 0)
+                        .build();
+                if (exerciseDto.getSets() != null) {
+                    for (SetDto setDto : exerciseDto.getSets()) {
+                        exercise.addSet(WorkoutSet.builder()
+                                .setNumber(setDto.getSetNumber())
+                                .reps(setDto.getReps())
+                                .weightKg(setDto.getWeightKg())
+                                .build());
+                    }
+                }
+                journal.addExercise(exercise);
+            }
+        }
 
         return new JournalDetailDto(journal);
     }
 
     private void applyPostFinalize(WorkoutJournal journal, PostConditionDto postCondition,
                                    List<PainRecordDto> painRecords, String content,
-                                   List<String> imageUrls) {
-        journal.applyPostCondition(
-                postCondition.getJointMusclePain(),
-                postCondition.getIntensityFit(),
-                postCondition.getGoalAchieved(),
-                postCondition.getDizziness(),
-                postCondition.getMood(),
-                content
-        );
+                                   List<String> imageUrls, Integer totalDurationSeconds) {
+        journal.recordDuration(totalDurationSeconds);
+        JournalPostCondition post = JournalPostCondition.of(journal, postCondition);
+        journal.setPostCondition(post);
+        postConditionRepository.save(post);
+
+        if (content != null) {
+            journal.updateContent(content);
+        }
 
         if (painRecords != null) {
             for (PainRecordDto dto : painRecords) {
@@ -160,9 +222,29 @@ public class JournalService {
     }
 
     @Transactional(readOnly = true)
-    public JournalDetailDto getJournalDetail(Long journalId) {
+    public JournalDetailDto getJournalDetail(Long userId, Long journalId) {
         WorkoutJournal journal = journalRepository.findById(journalId)
                 .orElseThrow(JournalNotFoundException::new);
+        verifyJournalAccess(journal, userId);
         return new JournalDetailDto(journal);
+    }
+
+    private void verifyJournalAccess(WorkoutJournal journal, Long userId) {
+        if (journal.getAuthorId().equals(userId)) {
+            return;
+        }
+        if (journal.getFolderId() != null) {
+            DiaryFolder folder = folderRepository.findById(journal.getFolderId())
+                    .orElseThrow(JournalForbiddenException::new);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(JournalForbiddenException::new);
+            boolean isActiveMember = memberRepository.findByFolderAndUser(folder, user)
+                    .map(DiaryFolderMember::isActive)
+                    .orElse(false);
+            if (isActiveMember) {
+                return;
+            }
+        }
+        throw new JournalForbiddenException();
     }
 }

@@ -4,11 +4,14 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.Builder;
 import lombok.Getter;
@@ -47,38 +50,11 @@ public class WorkoutJournal {
     @Column(name = "workout_date", nullable = false)
     private LocalDate workoutDate;
 
-    @Column(name = "pre_joint_muscle_pain")
-    private Integer preJointMusclePain;
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
 
-    @Column(name = "pre_sleep_hours")
-    private Integer preSleepHours;
-
-    @Column(name = "pre_sleep_quality")
-    private Integer preSleepQuality;
-
-    @Column(name = "pre_previous_fatigue")
-    private Integer prePreviousFatigue;
-
-    @Column(name = "pre_overall_condition")
-    private Integer preOverallCondition;
-
-    @Column(name = "post_joint_muscle_pain")
-    private Integer postJointMusclePain;
-
-    @Column(name = "post_intensity_fit")
-    private Integer postIntensityFit;
-
-    @Column(name = "post_goal_achieved")
-    private Integer postGoalAchieved;
-
-    @Column(name = "post_dizziness")
-    private Integer postDizziness;
-
-    @Column(name = "post_mood")
-    private Integer postMood;
-
-    @Column(name = "post_recorded_at")
-    private LocalDateTime postRecordedAt;
+    @Column(name = "total_duration_seconds")
+    private Integer totalDurationSeconds;
 
     @Column(name = "content", length = 5000)
     private String content;
@@ -94,26 +70,56 @@ public class WorkoutJournal {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @OneToOne(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    private JournalPreCondition preCondition;
+
+    @OneToOne(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    private JournalPostCondition postCondition;
+
+    @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
+    @OrderBy("displayOrder ASC")
+    private List<WorkoutExercise> exercises = new ArrayList<>();
+
     @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
     private List<JournalPainRecord> painRecords = new ArrayList<>();
 
-//    @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
-//    @jakarta.persistence.OrderBy("displayOrder ASC")
-//    private List<JournalAttachment> attachments = new ArrayList<>();
+    @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
+    @jakarta.persistence.OrderBy("displayOrder ASC")
+    private List<JournalAttachment> attachments = new ArrayList<>();
 
     @Builder
-    public WorkoutJournal(Long folderId, Long authorId, LocalDate workoutDate,
-                          Integer preJointMusclePain, Integer preSleepHours,
-                          Integer preSleepQuality, Integer prePreviousFatigue,
-                          Integer preOverallCondition) {
+    public WorkoutJournal(Long folderId, Long authorId, LocalDate workoutDate, LocalDateTime startedAt) {
         this.folderId = folderId;
         this.authorId = authorId;
         this.workoutDate = workoutDate;
-        this.preJointMusclePain = preJointMusclePain;
-        this.preSleepHours = preSleepHours;
-        this.preSleepQuality = preSleepQuality;
-        this.prePreviousFatigue = prePreviousFatigue;
-        this.preOverallCondition = preOverallCondition;
+        this.startedAt = startedAt;
+    }
+
+    public void recordDuration(Integer seconds) {
+        this.totalDurationSeconds = seconds;
+    }
+
+    public void setPreCondition(JournalPreCondition pre) {
+        this.preCondition = pre;
+        pre.setJournal(this);
+    }
+
+    public void setPostCondition(JournalPostCondition post) {
+        this.postCondition = post;
+        post.setJournal(this);
+    }
+
+    public boolean isCompleted() {
+        return postCondition != null;
+    }
+
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
+    public void addExercise(WorkoutExercise exercise) {
+        exercises.add(exercise);
+        exercise.setJournal(this);
     }
 
     public void addPainRecord(JournalPainRecord record) {
@@ -121,23 +127,8 @@ public class WorkoutJournal {
         record.setJournal(this);
     }
 
-//    public void addAttachment(JournalAttachment attachment) {
-//        if (attachments.size() >= 5) {
-//            throw new IllegalStateException("이미지는 최대 5개까지 첨부 가능합니다.");
-//        }
-//        attachments.add(attachment);
-//        attachment.setJournal(this);
-//    }
-
-    public void applyPostCondition(Integer postJointMusclePain, Integer postIntensityFit,
-                                   Integer postGoalAchieved, Integer postDizziness,
-                                   Integer postMood, String content) {
-        this.postJointMusclePain = postJointMusclePain;
-        this.postIntensityFit = postIntensityFit;
-        this.postGoalAchieved = postGoalAchieved;
-        this.postDizziness = postDizziness;
-        this.postMood = postMood;
-        this.content = content;
-        this.postRecordedAt = LocalDateTime.now();
+    public void addAttachment(JournalAttachment attachment) {
+        attachments.add(attachment);
+        attachment.setJournal(this);
     }
 }

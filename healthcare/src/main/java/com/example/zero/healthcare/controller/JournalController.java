@@ -6,7 +6,7 @@ import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
 import com.example.zero.healthcare.dto.journal.JournalDetailDto;
 import com.example.zero.healthcare.dto.journal.JournalSummaryDto;
-import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
+// import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest; // 미사용
 import com.example.zero.healthcare.service.JournalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
+// import org.springframework.web.bind.annotation.PatchMapping; // 미사용
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,16 +45,7 @@ public class JournalController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(data));
     }
 
-    @Operation(summary = "운동 후 기록 추가 (PATCH)")
-    @PatchMapping("/{id}/post")
-    public ResponseEntity<ApiResponse<JournalDetailDto>> updatePost(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateJournalPostRequest request) {
-        JournalDetailDto data = journalService.updatePostCondition(id, request);
-        return ResponseEntity.ok(ApiResponse.ok(data));
-    }
-
-    @Operation(summary = "journalId 없이 운동 후 기록 완료 (lookup-based update)")
+    @Operation(summary = "운동 완료 — workoutDate로 PRE 일지 lookup 후 update, 없으면 insert (upsert)")
     @PostMapping("/complete")
     public ResponseEntity<ApiResponse<JournalDetailDto>> complete(
             @AuthenticationPrincipal Long userId,
@@ -66,7 +57,7 @@ public class JournalController {
     @Operation(summary = "사용자 일지 목록 조회 (date 또는 from+to로 필터링 가능)")
     @GetMapping
     public ResponseEntity<ApiResponse<List<JournalSummaryDto>>> getMyJournals(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
@@ -76,8 +67,11 @@ public class JournalController {
 
     @Operation(summary = "일지 상세 조회")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<JournalDetailDto>> getJournalDetail(@PathVariable Long id) {
-        JournalDetailDto data = journalService.getJournalDetail(id);
+    public ResponseEntity<ApiResponse<JournalDetailDto>> getJournalDetail(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long id) {
+        JournalDetailDto data = journalService.getJournalDetail(userId, id);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
+
 }

@@ -2,6 +2,7 @@ package com.example.zero.healthcare.dto.journal;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -9,21 +10,34 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.validator.constraints.URL;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class UpdateJournalPostRequest {
+public class CompleteJournalRequest {
 
-    @NotNull @Valid
-    private PostConditionDto postCondition;
+    @NotNull @PastOrPresent
+    private LocalDate workoutDate;
+
+    @NotNull @PastOrPresent
+    private LocalDateTime startedAt;
 
     @PositiveOrZero
     private Integer totalDurationSeconds;
 
+    private Long folderId;
+
+    @NotNull @Valid
+    private PostConditionDto postCondition;
+
     @Valid
     private List<PainRecordDto> painRecords;
+
+    @Valid
+    private List<ExerciseDto> exercises;
 
     @Size(max = 5000)
     private String content;

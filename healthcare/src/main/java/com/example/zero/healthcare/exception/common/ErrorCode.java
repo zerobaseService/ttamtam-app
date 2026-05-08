@@ -19,6 +19,7 @@ public enum ErrorCode {
     // === Journal ===
     JOURNAL_NOT_FOUND(404, "JOURNAL_NOT_FOUND", "존재하지 않는 일지입니다."),
     POST_ALREADY_RECORDED(409, "POST_ALREADY_RECORDED", "이미 운동 후 기록이 완료된 일지입니다."),
+    JOURNAL_FORBIDDEN(403, "JOURNAL_FORBIDDEN", "해당 일지에 대한 접근 권한이 없습니다."),
 
     // === Folder ===
     FOLDER_NOT_FOUND(404, "FOLDER_NOT_FOUND", "폴더를 찾을 수 없습니다."),
@@ -29,7 +30,14 @@ public enum ErrorCode {
     INVALID_FOLDER_NAME(400, "INVALID_FOLDER_NAME", "폴더명 형식 또는 길이가 올바르지 않습니다."),
     INVALID_TOKEN(400, "INVALID_TOKEN", "유효하지 않은 초대 토큰입니다."),
     INVALID_CURSOR(400, "INVALID_CURSOR", "커서 값이 올바르지 않습니다."),
-    FORBIDDEN(403, "FORBIDDEN", "해당 폴더에 대한 접근 권한이 없습니다.");
+    FORBIDDEN(403, "FORBIDDEN", "해당 폴더에 대한 접근 권한이 없습니다."),
+
+    // === Upload ===
+    FILE_TOO_LARGE(413, "FILE_TOO_LARGE", "파일 크기가 허용 한도를 초과했습니다."),
+    UNSUPPORTED_FILE_TYPE(400, "UNSUPPORTED_FILE_TYPE", "지원하지 않는 파일 형식입니다."),
+
+    // === Idempotency ===
+    IDEMPOTENCY_KEY_REUSE(422, "IDEMPOTENCY_KEY_REUSE", "동일 키로 다른 본문을 재전송할 수 없습니다.");
 
     private final int status;
     private final String code;

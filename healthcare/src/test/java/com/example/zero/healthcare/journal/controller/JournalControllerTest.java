@@ -1,7 +1,11 @@
 package com.example.zero.healthcare.journal.controller;
 
+import com.example.zero.healthcare.Entity.DiaryFolder;
+import com.example.zero.healthcare.Entity.DiaryFolderMember;
 import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.auth.JwtTokenProvider;
+import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
+import com.example.zero.healthcare.repository.DiaryFolderRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import java.util.UUID;
@@ -16,7 +20,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,6 +32,8 @@ class JournalControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository userRepository;
     @Autowired private JwtTokenProvider jwtTokenProvider;
+    @Autowired private DiaryFolderRepository folderRepository;
+    @Autowired private DiaryFolderMemberRepository memberRepository;
 
     private Long userId;
     private String bearerToken;
@@ -46,6 +51,7 @@ class JournalControllerTest {
         String body = """
                 {
                   "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
                   "folderId": null,
                   "preCondition": {
                     "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
@@ -71,6 +77,7 @@ class JournalControllerTest {
         String body = """
                 {
                   "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
                   "preCondition": {
                     "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
                     "previousFatigue": 4, "overallCondition": 8
@@ -203,6 +210,7 @@ class JournalControllerTest {
         String body = """
                 {
                   "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
                   "preCondition": {
                     "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
                     "previousFatigue": 4, "overallCondition": 8
@@ -231,6 +239,7 @@ class JournalControllerTest {
         String body = """
                 {
                   "workoutDate": "2026-04-15",
+                  "startedAt": "2026-04-15T09:00:00",
                   "preCondition": {
                     "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
                     "previousFatigue": 4, "overallCondition": 8
@@ -258,11 +267,11 @@ class JournalControllerTest {
     @DisplayName("파라미터 없이 조회하면 전체 일지를 반환한다")
     void getJournals_noParams_returnsAll() throws Exception {
         String body1 = """
-                {"workoutDate": "2026-04-20",
+                {"workoutDate": "2026-04-20", "startedAt": "2026-04-20T09:00:00",
                  "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
                    "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""";
         String body2 = """
-                {"workoutDate": "2026-04-21",
+                {"workoutDate": "2026-04-21", "startedAt": "2026-04-21T09:00:00",
                  "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
                    "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""";
 
@@ -319,6 +328,7 @@ class JournalControllerTest {
         String body = """
                 {
                   "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
                   "preCondition": {
                     "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
                     "previousFatigue": 4, "overallCondition": 8
@@ -354,12 +364,13 @@ class JournalControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // ─── PATCH /{id}/post ──────────────────────────────────────────────────
+    // ─── GET /{id} 상세 조회 ────────────────────────────────────────────────
 
     private String createJournalAndGetId() throws Exception {
         String body = """
                 {
                   "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
                   "preCondition": {
                     "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
                     "previousFatigue": 4, "overallCondition": 8
@@ -375,90 +386,6 @@ class JournalControllerTest {
         return com.jayway.jsonpath.JsonPath.read(response, "$.data.journalId").toString();
     }
 
-    @Test
-    @DisplayName("PATCH /post 성공 시 200과 JournalDetailDto를 반환한다")
-    void updatePost_validRequest_returns200AndDetail() throws Exception {
-        String journalId = createJournalAndGetId();
-        String body = """
-                {
-                  "userId": %d,
-                  "postCondition": {
-                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
-                    "dizziness": 2, "mood": 9
-                  },
-                  "painRecords": [{"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 5}],
-                  "imageUrls": ["https://cdn.ttamtam.app/img.jpg"],
-                  "content": "잘했다"
-                }""".formatted(userId);
-
-        mockMvc.perform(patch("/api/journals/" + journalId + "/post")
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.postRecordedAt").exists())
-                .andExpect(jsonPath("$.data.attachments").isArray())
-                .andExpect(jsonPath("$.data.attachments[0].imageUrl").value("https://cdn.ttamtam.app/img.jpg"))
-                .andExpect(jsonPath("$.data.attachments[0].displayOrder").value(0));
-    }
-
-    @Test
-    @DisplayName("이미지 6개 이상이면 400을 반환한다")
-    void updatePost_sixImages_returns400() throws Exception {
-        String journalId = createJournalAndGetId();
-        String body = """
-                {
-                  "userId": %d,
-                  "postCondition": {
-                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
-                    "dizziness": 2, "mood": 9
-                  },
-                  "imageUrls": [
-                    "https://cdn.ttamtam.app/a.jpg",
-                    "https://cdn.ttamtam.app/b.jpg",
-                    "https://cdn.ttamtam.app/c.jpg",
-                    "https://cdn.ttamtam.app/d.jpg",
-                    "https://cdn.ttamtam.app/e.jpg",
-                    "https://cdn.ttamtam.app/f.jpg"
-                  ]
-                }""".formatted(userId);
-
-        mockMvc.perform(patch("/api/journals/" + journalId + "/post")
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-    }
-
-    @Test
-    @DisplayName("이미 기록 완료된 일지에 PATCH /post 호출 시 409를 반환한다")
-    void updatePost_alreadyRecorded_returns409() throws Exception {
-        String journalId = createJournalAndGetId();
-        String body = """
-                {
-                  "userId": %d,
-                  "postCondition": {
-                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
-                    "dizziness": 2, "mood": 9
-                  }
-                }""".formatted(userId);
-
-        mockMvc.perform(patch("/api/journals/" + journalId + "/post")
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(patch("/api/journals/" + journalId + "/post")
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("POST_ALREADY_RECORDED"));
-    }
-
     // ─── POST /complete ────────────────────────────────────────────────────
 
     @Test
@@ -470,6 +397,7 @@ class JournalControllerTest {
                         .content("""
                                 {
                                   "workoutDate": "2026-04-25",
+                                  "startedAt": "2026-04-25T09:00:00",
                                   "preCondition": {
                                     "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
                                     "previousFatigue": 4, "overallCondition": 8
@@ -480,6 +408,8 @@ class JournalControllerTest {
         String completeBody = """
                 {
                   "workoutDate": "2026-04-25",
+                  "startedAt": "2026-04-25T09:00:00",
+                  "totalDurationSeconds": 3600,
                   "postCondition": {
                     "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
                     "dizziness": 2, "mood": 9
@@ -494,7 +424,7 @@ class JournalControllerTest {
                         .content(completeBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.postRecordedAt").exists())
+                .andExpect(jsonPath("$.data.postCondition.recordedAt").exists())
                 .andExpect(jsonPath("$.data.attachments[0].imageUrl")
                         .value("https://cdn.ttamtam.app/complete.jpg"));
     }
@@ -502,22 +432,25 @@ class JournalControllerTest {
     @Test
     @DisplayName("GET /{id} 상세 조회에 attachments 필드가 포함된다")
     void getJournalDetail_includesAttachments() throws Exception {
-        String journalId = createJournalAndGetId();
-        String patchBody = """
+        String completeBody = """
                 {
-                  "userId": %d,
+                  "workoutDate": "2020-05-01",
+                  "startedAt": "2020-05-01T09:00:00",
                   "postCondition": {
                     "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
                     "dizziness": 2, "mood": 9
                   },
                   "imageUrls": ["https://cdn.ttamtam.app/detail.jpg"]
-                }""".formatted(userId);
+                }""";
 
-        mockMvc.perform(patch("/api/journals/" + journalId + "/post")
+        String response = mockMvc.perform(post("/api/journals/complete")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(patchBody))
-                .andExpect(status().isOk());
+                        .content(completeBody))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String journalId = com.jayway.jsonpath.JsonPath.read(response, "$.data.journalId").toString();
 
         mockMvc.perform(get("/api/journals/" + journalId)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken))
@@ -528,11 +461,12 @@ class JournalControllerTest {
     }
 
     @Test
-    @DisplayName("POST /complete — PRE-only 일지 없으면 404를 반환한다")
-    void complete_noMatchingJournal_returns404() throws Exception {
+    @DisplayName("POST /complete — PRE 일지 없으면 새 일지를 insert하고 200과 JournalDetailDto를 반환한다")
+    void complete_noPreJournal_returns200_andCreated() throws Exception {
         String body = """
                 {
                   "workoutDate": "2020-01-01",
+                  "startedAt": "2020-01-01T09:00:00",
                   "postCondition": {
                     "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
                     "dizziness": 2, "mood": 9
@@ -543,7 +477,267 @@ class JournalControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, bearerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.postCondition").exists());
+    }
+
+    @Test
+    @DisplayName("POST /complete — postCondition 범위 초과이면 400을 반환한다")
+    void complete_invalidPostConditionRange_returns400() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2026-04-25",
+                  "postCondition": {
+                    "jointMusclePain": 11, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  }
+                }""";
+
+        mockMvc.perform(post("/api/journals/complete")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("POST /complete — imageUrls가 5개 초과이면 400을 반환한다")
+    void complete_imageUrlsOver5_returns400() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2026-04-25",
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  },
+                  "imageUrls": [
+                    "https://cdn.ttamtam.app/a.jpg", "https://cdn.ttamtam.app/b.jpg",
+                    "https://cdn.ttamtam.app/c.jpg", "https://cdn.ttamtam.app/d.jpg",
+                    "https://cdn.ttamtam.app/e.jpg", "https://cdn.ttamtam.app/f.jpg"
+                  ]
+                }""";
+
+        mockMvc.perform(post("/api/journals/complete")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("POST /complete — 가입하지 않은 folderId이면 403을 반환한다")
+    void complete_folderNotMember_returns403() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+
+        String body = """
+                {
+                  "workoutDate": "2026-04-25",
+                  "startedAt": "2026-04-25T09:00:00",
+                  "folderId": %d,
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  }
+                }""".formatted(folder.getId());
+
+        mockMvc.perform(post("/api/journals/complete")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("POST /complete — JWT 없이 요청하면 401을 반환한다")
+    void complete_withoutJwt_returns401() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2026-04-25",
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  }
+                }""";
+
+        mockMvc.perform(post("/api/journals/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ─── PHASE S1: GET 엔드포인트 권한 검증 ───────────────────────────────────
+
+    @Test
+    @DisplayName("JWT의 userId 기준으로 조회되며 query param userId는 무시된다")
+    void getMyJournals_usesJwtUserId_ignoresQueryParam() throws Exception {
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"workoutDate": "2026-04-20", "startedAt": "2026-04-20T09:00:00",
+                                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                                   "previousFatigue": 4, "overallCondition": 8}}"""))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .param("userId", "99999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("JWT 없이 일지 목록 조회 시 401을 반환한다")
+    void getMyJournals_withoutJwt_returns401() throws Exception {
+        mockMvc.perform(get("/api/journals"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("본인 일지 상세 조회 시 200을 반환한다")
+    void getJournalDetail_ownJournal_returns200() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        mockMvc.perform(get("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 일지(폴더 없음) 상세 조회 시 403을 반환한다")
+    void getJournalDetail_otherUserJournal_returns403() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        User userB = userRepository.save(new User("ctrl-other-" + UUID.randomUUID() + "@test.com", "token", "other"));
+        String tokenB = "Bearer " + jwtTokenProvider.generateToken(userB.getId());
+
+        mockMvc.perform(get("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, tokenB))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("JOURNAL_FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 일지 상세 조회 시 404를 반환한다")
+    void getJournalDetail_unknownJournal_returns404() throws Exception {
+        mockMvc.perform(get("/api/journals/99999999")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("JOURNAL_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("JWT 없이 일지 상세 조회 시 401을 반환한다")
+    void getJournalDetail_withoutJwt_returns401() throws Exception {
+        mockMvc.perform(get("/api/journals/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ─── PHASE S3: createJournal 폴더 멤버십 검증 ─────────────────────────────
+
+    @Test
+    @DisplayName("가입하지 않은 folderId로 일지 생성 시 403을 반환한다")
+    void create_folderNotMember_returns403() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "folderId": %d,
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  }
+                }""".formatted(folder.getId());
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("활성 멤버인 folderId로 일지 생성 시 201을 반환한다")
+    void create_folderActiveMember_returns201() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+        User user = userRepository.findById(userId).orElseThrow();
+        memberRepository.save(DiaryFolderMember.join(folder, user));
+
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "folderId": %d,
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  }
+                }""".formatted(folder.getId());
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("POST /complete 응답에 startedAt과 totalDurationSeconds가 포함된다")
+    void complete_includesTimerFieldsInResponse() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2020-03-01",
+                  "startedAt": "2020-03-01T09:00:00",
+                  "totalDurationSeconds": 3600,
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  }
+                }""";
+
+        mockMvc.perform(post("/api/journals/complete")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.startedAt").exists())
+                .andExpect(jsonPath("$.data.totalDurationSeconds").value(3600));
+    }
+
+    @Test
+    @DisplayName("POST /complete — exercises 포함 시 200과 운동 기록이 포함된 JournalDetailDto를 반환한다")
+    void complete_withExercises_returns200AndDetail() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2020-02-01",
+                  "startedAt": "2020-02-01T09:00:00",
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  },
+                  "exercises": [
+                    { "exerciseName": "스쿼트", "displayOrder": 1,
+                      "sets": [{ "setNumber": 1, "reps": 10, "weightKg": 80.0 }] }
+                  ]
+                }""";
+
+        mockMvc.perform(post("/api/journals/complete")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.exercises[0].exerciseName").value("스쿼트"))
+                .andExpect(jsonPath("$.data.exercises[0].sets[0].reps").value(10));
     }
 }

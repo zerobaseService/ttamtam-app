@@ -4,9 +4,11 @@ import com.example.zero.healthcare.Entity.journal.BodyPart;
 import com.example.zero.healthcare.Entity.journal.BodySide;
 import com.example.zero.healthcare.Entity.journal.JournalAttachment;
 import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
+import com.example.zero.healthcare.Entity.journal.JournalPostCondition;
 import com.example.zero.healthcare.Entity.journal.PainTiming;
 import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
+import com.example.zero.healthcare.dto.journal.PostConditionDto;
 import com.example.zero.healthcare.repository.JournalRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -52,12 +54,17 @@ class JournalRepositoryTest {
         return WorkoutJournal.builder()
                 .authorId(authorId)
                 .workoutDate(workoutDate)
-                .preJointMusclePain(5)
-                .preSleepHours(7)
-                .preSleepQuality(6)
-                .prePreviousFatigue(4)
-                .preOverallCondition(8)
                 .build();
+    }
+
+    private PostConditionDto validPostConditionDto() {
+        PostConditionDto dto = new PostConditionDto();
+        dto.setJointMusclePain(6);
+        dto.setIntensityFit(7);
+        dto.setGoalAchieved(8);
+        dto.setDizziness(2);
+        dto.setMood(9);
+        return dto;
     }
 
     @Test
@@ -104,7 +111,6 @@ class JournalRepositoryTest {
         em.flush();
         em.clear();
 
-        // @SQLRestriction 우회: 네이티브 쿼리로 직접 조회
         Long count = (Long) entityManager
                 .createNativeQuery("SELECT COUNT(*) FROM workout_journal WHERE id = :id AND deleted_at IS NOT NULL")
                 .setParameter("id", saved.getId())
@@ -123,12 +129,11 @@ class JournalRepositoryTest {
 
         WorkoutJournal saved = journalRepository.save(journal);
         em.flush();
-        em.clear(); // session 초기화 — pain records가 session에 없는 상태에서 delete
+        em.clear();
 
-        // LAZY 로딩: findById는 journal만 session에 로드(pain records는 비로드)
         WorkoutJournal toDelete = journalRepository.findById(saved.getId()).orElseThrow();
         journalRepository.delete(toDelete);
-        em.flush(); // journal만 session에 있으므로 TransientPropertyValueException 없음
+        em.flush();
         em.clear();
 
         Long count = (Long) entityManager
@@ -220,21 +225,17 @@ class JournalRepositoryTest {
     }
 
     @Test
-    @DisplayName("pre 컨디션 없이 일지를 저장할 수 있다 (pre-* nullable)")
+    @DisplayName("pre_condition 없이 일지를 저장할 수 있다 (preCondition nullable)")
     void save_withoutPreCondition_succeeds() {
         User user = saveUser();
-        WorkoutJournal journal = WorkoutJournal.builder()
-                .authorId(user.getId())
-                .workoutDate(LocalDate.of(2026, 4, 20))
-                .build();
+        WorkoutJournal journal = buildJournal(user.getId());
 
         WorkoutJournal saved = journalRepository.save(journal);
         em.flush();
         em.clear();
 
         WorkoutJournal found = journalRepository.findById(saved.getId()).orElseThrow();
-        assertThat(found.getPreJointMusclePain()).isNull();
-        assertThat(found.getPreSleepHours()).isNull();
+        assertThat(found.getPreCondition()).isNull();
     }
 
     @Test
@@ -276,7 +277,7 @@ class JournalRepositoryTest {
     }
 
     @Test
-    @DisplayName("findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNull은 PRE-only 일지 중 가장 최근 것을 반환한다")
+    @DisplayName("findFirstPreOnlyJournal은 PRE-only 일지 중 가장 최근 것을 반환한다")
     void findFirstPreOnly_returnsLatestMatchingJournal() {
         User user = saveUser();
         LocalDate date = LocalDate.of(2026, 4, 20);
@@ -288,28 +289,27 @@ class JournalRepositoryTest {
         em.clear();
 
         java.util.Optional<WorkoutJournal> result = journalRepository
-                .findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
-                        user.getId(), date);
+                .findFirstPreOnlyJournal(user.getId(), date);
 
         assertThat(result).isPresent();
         assertThat(result.get().getId()).isEqualTo(second.getId());
     }
 
     @Test
-    @DisplayName("postRecordedAt이 있는 일지는 findFirstPreOnly 조회에서 제외된다")
-    void findFirstPreOnly_excludesJournalsWithPostRecordedAt() {
+    @DisplayName("postCondition이 있는 일지는 findFirstPreOnlyJournal 조회에서 제외된다")
+    void findFirstPreOnly_excludesJournalsWithPostCondition() {
         User user = saveUser();
         LocalDate date = LocalDate.of(2026, 4, 20);
 
         WorkoutJournal completed = buildJournal(user.getId(), date);
-        completed.applyPostCondition(6, 7, 8, 2, 9, "완료");
+        JournalPostCondition post = JournalPostCondition.of(completed, validPostConditionDto());
+        completed.setPostCondition(post);
         journalRepository.save(completed);
         em.flush();
         em.clear();
 
         java.util.Optional<WorkoutJournal> result = journalRepository
-                .findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
-                        user.getId(), date);
+                .findFirstPreOnlyJournal(user.getId(), date);
 
         assertThat(result).isEmpty();
     }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 @Slf4j
@@ -59,6 +60,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         ErrorCode code = ErrorCode.DATA_INTEGRITY_VIOLATION;
+        return ResponseEntity.status(code.getStatus())
+                .body(new ErrorResponse(code.getCode(), code.getMessage()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleSizeExceeded(MaxUploadSizeExceededException ex) {
+        ErrorCode code = ErrorCode.FILE_TOO_LARGE;
         return ResponseEntity.status(code.getStatus())
                 .body(new ErrorResponse(code.getCode(), code.getMessage()));
     }

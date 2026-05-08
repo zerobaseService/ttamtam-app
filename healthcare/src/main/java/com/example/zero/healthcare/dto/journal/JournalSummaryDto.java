@@ -20,8 +20,9 @@ public class JournalSummaryDto {
         this.journalId = journal.getId();
         this.workoutDate = journal.getWorkoutDate();
         this.createdAt = journal.getCreatedAt();
-        this.postRecorded = journal.getPostRecordedAt() != null;
-        this.preOverallCondition = journal.getPreOverallCondition();
+        this.postRecorded = journal.isCompleted();
+        this.preOverallCondition = journal.getPreCondition() != null
+                ? journal.getPreCondition().getOverallCondition() : null;
         String c = journal.getContent();
         this.contentPreview = (c != null && c.length() > 100) ? c.substring(0, 100) : c;
     }
