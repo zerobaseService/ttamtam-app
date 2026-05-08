@@ -2,17 +2,21 @@ package com.example.zero.healthcare.journal.service;
 
 import com.example.zero.healthcare.Entity.DiaryFolder;
 import com.example.zero.healthcare.Entity.DiaryFolderMember;
+import com.example.zero.healthcare.Entity.journal.JournalPostCondition;
+import com.example.zero.healthcare.Entity.journal.JournalPreCondition;
 import com.example.zero.healthcare.Entity.journal.PainTiming;
 import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import com.example.zero.healthcare.dto.journal.CompleteJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
+import com.example.zero.healthcare.dto.journal.ExerciseDto;
 import com.example.zero.healthcare.dto.journal.JournalDetailDto;
 import com.example.zero.healthcare.dto.journal.JournalSummaryDto;
 import com.example.zero.healthcare.dto.journal.PainRecordDto;
 import com.example.zero.healthcare.dto.journal.PostConditionDto;
 import com.example.zero.healthcare.dto.journal.PreConditionDto;
+import com.example.zero.healthcare.dto.journal.SetDto;
 import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
 import com.example.zero.healthcare.exception.CoreException;
 import com.example.zero.healthcare.exception.common.ErrorCode;
@@ -21,6 +25,7 @@ import com.example.zero.healthcare.exception.journal.JournalNotFoundException;
 import com.example.zero.healthcare.exception.journal.PostAlreadyRecordedException;
 import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
 import com.example.zero.healthcare.repository.DiaryFolderRepository;
+import com.example.zero.healthcare.repository.JournalPostConditionRepository;
 import com.example.zero.healthcare.repository.JournalRepository;
 import com.example.zero.healthcare.repository.UserRepository;
 import com.example.zero.healthcare.service.JournalService;
@@ -33,7 +38,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,6 +55,7 @@ class JournalServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private JournalRepository journalRepository;
+    @Mock private JournalPostConditionRepository postConditionRepository;
     @Mock private DiaryFolderRepository folderRepository;
     @Mock private DiaryFolderMemberRepository memberRepository;
     @InjectMocks private JournalService journalService;
@@ -56,18 +64,31 @@ class JournalServiceTest {
         return new PreConditionDto(5, 7, 6, 4, 8);
     }
 
+    private PostConditionDto validPostCondition() {
+        PostConditionDto dto = new PostConditionDto();
+        dto.setJointMusclePain(6);
+        dto.setIntensityFit(7);
+        dto.setGoalAchieved(8);
+        dto.setDizziness(2);
+        dto.setMood(9);
+        return dto;
+    }
+
     private LocalDate validDate() {
         return LocalDate.of(2026, 4, 20);
     }
 
     private WorkoutJournal stubSavedJournal(LocalDate workoutDate) {
-        return WorkoutJournal.builder()
+        WorkoutJournal journal = WorkoutJournal.builder()
                 .authorId(1L)
                 .workoutDate(workoutDate)
-                .preJointMusclePain(5).preSleepHours(7)
-                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
                 .build();
+        JournalPreCondition pre = JournalPreCondition.of(journal, validPreCondition());
+        journal.setPreCondition(pre);
+        return journal;
     }
+
+    // ─── createJournal ──────────────────────────────────────────────────────
 
     @Test
     @DisplayName("유효한 요청으로 일지를 생성하면 journalId와 createdAt을 반환한다")
@@ -75,7 +96,7 @@ class JournalServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User("test@example.com", "token", "tester")));
         given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), List.of());
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), List.of(), null);
         CreateJournalResponse response = journalService.createJournal(1L, req);
 
         assertThat(response).isNotNull();
@@ -88,7 +109,7 @@ class JournalServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
         given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), List.of());
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), List.of(), null);
         journalService.createJournal(1L, req);
 
         ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
@@ -102,7 +123,7 @@ class JournalServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
         given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null);
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null, null);
         journalService.createJournal(1L, req);
 
         ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
@@ -120,7 +141,7 @@ class JournalServiceTest {
                 new PainRecordDto("SHOULDER", "LEFT", 7),
                 new PainRecordDto("KNEE", "RIGHT", 4)
         );
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), records);
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), records, null);
         journalService.createJournal(1L, req);
 
         ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
@@ -135,7 +156,7 @@ class JournalServiceTest {
     void createJournal_unknownUser_throwsEntityNotFound() {
         given(userRepository.findById(999L)).willReturn(Optional.empty());
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null);
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null, null);
 
         assertThatThrownBy(() -> journalService.createJournal(999L, req))
                 .isInstanceOf(EntityNotFoundException.class);
@@ -148,13 +169,44 @@ class JournalServiceTest {
         LocalDate date = LocalDate.of(2026, 4, 20);
         given(journalRepository.save(any())).willReturn(stubSavedJournal(date));
 
-        CreateJournalRequest req = new CreateJournalRequest(date, null, validPreCondition(), null);
+        CreateJournalRequest req = new CreateJournalRequest(date, null, validPreCondition(), null, null);
         journalService.createJournal(1L, req);
 
         ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
         verify(journalRepository).save(captor.capture());
         assertThat(captor.getValue().getWorkoutDate()).isEqualTo(date);
     }
+
+    @Test
+    @DisplayName("createJournal은 preCondition을 별도 Entity로 설정한다")
+    void createJournal_savesPreConditionSeparately() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        given(journalRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null, null);
+        journalService.createJournal(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        WorkoutJournal captured = captor.getValue();
+        assertThat(captured.getPreCondition()).isNotNull();
+        assertThat(captured.getPreCondition().getOverallCondition()).isEqualTo(8);
+    }
+
+    @Test
+    @DisplayName("createJournal은 userId를 별도 파라미터로 받아 일지를 생성한다")
+    void createJournal_userIdAsSeparateParam_persists() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("test@example.com", "token", "tester")));
+        given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
+
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), List.of(), null);
+        CreateJournalResponse response = journalService.createJournal(1L, req);
+
+        assertThat(response).isNotNull();
+        verify(journalRepository).save(any(WorkoutJournal.class));
+    }
+
+    // ─── getMyJournals ───────────────────────────────────────────────────────
 
     @Test
     @DisplayName("date 지정 조회는 findByAuthorIdAndWorkoutDateOrderByCreatedAtDesc를 호출한다")
@@ -186,27 +238,27 @@ class JournalServiceTest {
     }
 
     @Test
-    @DisplayName("createJournal은 userId를 별도 파라미터로 받아 일지를 생성한다")
-    void createJournal_userIdAsSeparateParam_persists() {
-        given(userRepository.findById(1L)).willReturn(Optional.of(new User("test@example.com", "token", "tester")));
-        given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
+    @DisplayName("date와 from/to를 동시 지정하면 IllegalArgumentException을 던진다")
+    void getMyJournals_withDateAndRange_throwsBadRequest() {
+        LocalDate date = LocalDate.of(2026, 4, 20);
+        LocalDate from = LocalDate.of(2026, 4, 1);
+        LocalDate to = LocalDate.of(2026, 4, 30);
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), List.of());
-        CreateJournalResponse response = journalService.createJournal(1L, req);
-
-        assertThat(response).isNotNull();
-        verify(journalRepository).save(any(WorkoutJournal.class));
+        assertThatThrownBy(() -> journalService.getMyJournals(1L, date, from, to))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    private PostConditionDto validPostCondition() {
-        PostConditionDto dto = new PostConditionDto();
-        dto.setJointMusclePain(6);
-        dto.setIntensityFit(7);
-        dto.setGoalAchieved(8);
-        dto.setDizziness(2);
-        dto.setMood(9);
-        return dto;
+    @Test
+    @DisplayName("from이 to보다 나중이면 IllegalArgumentException을 던진다")
+    void getMyJournals_fromAfterTo_throwsBadRequest() {
+        LocalDate from = LocalDate.of(2026, 4, 30);
+        LocalDate to = LocalDate.of(2026, 4, 1);
+
+        assertThatThrownBy(() -> journalService.getMyJournals(1L, null, from, to))
+                .isInstanceOf(IllegalArgumentException.class);
     }
+
+    // ─── updatePostCondition ─────────────────────────────────────────────────
 
     @Test
     @DisplayName("updatePostCondition은 JournalDetailDto를 반환한다")
@@ -264,7 +316,7 @@ class JournalServiceTest {
     @DisplayName("이미 기록 완료된 일지에 updatePostCondition 호출 시 PostAlreadyRecordedException을 던진다")
     void updatePostCondition_alreadyRecorded_throwsConflict() {
         WorkoutJournal journal = stubSavedJournal(validDate());
-        journal.applyPostCondition(6, 7, 8, 2, 9, null);
+        journal.setPostCondition(JournalPostCondition.of(journal, validPostCondition()));
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
         UpdateJournalPostRequest req = new UpdateJournalPostRequest();
@@ -286,12 +338,12 @@ class JournalServiceTest {
                 .isInstanceOf(JournalNotFoundException.class);
     }
 
-    // ─── PHASE S1: getJournalDetail 권한 검증 ─────────────────────────────────
+    // ─── getJournalDetail 권한 검증 ──────────────────────────────────────────
 
     @Test
     @DisplayName("본인 일지 상세 조회 시 JournalDetailDto를 반환한다")
     void getJournalDetail_ownJournal_returnsDetail() {
-        WorkoutJournal journal = stubSavedJournal(validDate()); // authorId=1L
+        WorkoutJournal journal = stubSavedJournal(validDate());
         given(journalRepository.findById(42L)).willReturn(Optional.of(journal));
 
         JournalDetailDto result = journalService.getJournalDetail(1L, 42L);
@@ -302,7 +354,7 @@ class JournalServiceTest {
     @Test
     @DisplayName("다른 사용자 일지(folderId=null) 조회 시 JournalForbiddenException을 던진다")
     void getJournalDetail_otherUserJournal_noFolder_throwsForbidden() {
-        WorkoutJournal journal = stubSavedJournal(validDate()); // authorId=1L, folderId=null
+        WorkoutJournal journal = stubSavedJournal(validDate());
         given(journalRepository.findById(42L)).willReturn(Optional.of(journal));
 
         assertThatThrownBy(() -> journalService.getJournalDetail(2L, 42L))
@@ -314,8 +366,6 @@ class JournalServiceTest {
     void getJournalDetail_otherUserJournal_sameFolderActiveMember_returnsDetail() {
         WorkoutJournal journal = WorkoutJournal.builder()
                 .authorId(1L).folderId(10L).workoutDate(validDate())
-                .preJointMusclePain(5).preSleepHours(7)
-                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
                 .build();
         DiaryFolder folder = DiaryFolder.create("test folder");
         User user2 = new User("other@b.com", "token2", "other");
@@ -336,8 +386,6 @@ class JournalServiceTest {
     void getJournalDetail_otherUserJournal_sameFolderInactiveMember_throwsForbidden() {
         WorkoutJournal journal = WorkoutJournal.builder()
                 .authorId(1L).folderId(10L).workoutDate(validDate())
-                .preJointMusclePain(5).preSleepHours(7)
-                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
                 .build();
         DiaryFolder folder = DiaryFolder.create("test folder");
         User user2 = new User("other@b.com", "token2", "other");
@@ -358,8 +406,6 @@ class JournalServiceTest {
     void getJournalDetail_otherUserJournal_notAMember_throwsForbidden() {
         WorkoutJournal journal = WorkoutJournal.builder()
                 .authorId(1L).folderId(10L).workoutDate(validDate())
-                .preJointMusclePain(5).preSleepHours(7)
-                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
                 .build();
         DiaryFolder folder = DiaryFolder.create("test folder");
         User user2 = new User("other@b.com", "token2", "other");
@@ -373,12 +419,12 @@ class JournalServiceTest {
                 .isInstanceOf(JournalForbiddenException.class);
     }
 
-    // ─── PHASE S2: updatePostCondition 권한 검증 ──────────────────────────────
+    // ─── updatePostCondition 권한 검증 ───────────────────────────────────────
 
     @Test
     @DisplayName("다른 사용자 일지(폴더 없음)에 updatePostCondition 시 JournalForbiddenException을 던진다")
     void updatePostCondition_otherUser_noFolder_throwsForbidden() {
-        WorkoutJournal journal = stubSavedJournal(validDate()); // authorId=1L, folderId=null
+        WorkoutJournal journal = stubSavedJournal(validDate());
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
         UpdateJournalPostRequest req = new UpdateJournalPostRequest();
@@ -393,8 +439,6 @@ class JournalServiceTest {
     void updatePostCondition_otherUser_sameFolderActiveMember_succeeds() {
         WorkoutJournal journal = WorkoutJournal.builder()
                 .authorId(1L).folderId(10L).workoutDate(validDate())
-                .preJointMusclePain(5).preSleepHours(7)
-                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
                 .build();
         DiaryFolder folder = DiaryFolder.create("test folder");
         User user2 = new User("other@b.com", "token2", "other");
@@ -418,8 +462,6 @@ class JournalServiceTest {
     void updatePostCondition_otherUser_sameFolderInactiveMember_throwsForbidden() {
         WorkoutJournal journal = WorkoutJournal.builder()
                 .authorId(1L).folderId(10L).workoutDate(validDate())
-                .preJointMusclePain(5).preSleepHours(7)
-                .preSleepQuality(6).prePreviousFatigue(4).preOverallCondition(8)
                 .build();
         DiaryFolder folder = DiaryFolder.create("test folder");
         User user2 = new User("other@b.com", "token2", "other");
@@ -438,7 +480,7 @@ class JournalServiceTest {
                 .isInstanceOf(JournalForbiddenException.class);
     }
 
-    // ─── PHASE S3: createJournal 폴더 멤버십 검증 ─────────────────────────────
+    // ─── createJournal 폴더 멤버십 검증 ─────────────────────────────────────
 
     @Test
     @DisplayName("createJournal - folderId가 있고 폴더 멤버가 아니면 FORBIDDEN을 던진다")
@@ -450,7 +492,7 @@ class JournalServiceTest {
         given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
         given(memberRepository.findByFolderAndUser(folder, user)).willReturn(Optional.empty());
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null);
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null, null);
 
         assertThatThrownBy(() -> journalService.createJournal(1L, req))
                 .isInstanceOf(CoreException.class)
@@ -469,7 +511,7 @@ class JournalServiceTest {
         given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
         given(memberRepository.findByFolderAndUser(folder, user)).willReturn(Optional.of(inactiveMember));
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null);
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null, null);
 
         assertThatThrownBy(() -> journalService.createJournal(1L, req))
                 .isInstanceOf(CoreException.class)
@@ -488,7 +530,7 @@ class JournalServiceTest {
         given(memberRepository.findByFolderAndUser(folder, user)).willReturn(Optional.of(activeMember));
         given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null);
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), 10L, validPreCondition(), null, null);
 
         CreateJournalResponse response = journalService.createJournal(1L, req);
 
@@ -501,12 +543,14 @@ class JournalServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
         given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
 
-        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null);
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null, null);
 
         CreateJournalResponse response = journalService.createJournal(1L, req);
 
         assertThat(response).isNotNull();
     }
+
+    // ─── completeByLookup ────────────────────────────────────────────────────
 
     @Test
     @DisplayName("completeByLookup은 PRE-only 일지를 lookup하여 post 정보를 저장한다")
@@ -514,8 +558,7 @@ class JournalServiceTest {
         User user = new User("a@b.com", "t", "n");
         WorkoutJournal journal = stubSavedJournal(validDate());
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(journalRepository.findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
-                1L, validDate()))
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate()))
                 .willReturn(Optional.of(journal));
 
         CompleteJournalRequest req = new CompleteJournalRequest();
@@ -525,24 +568,103 @@ class JournalServiceTest {
         JournalDetailDto result = journalService.completeByLookup(1L, req);
 
         assertThat(result).isNotNull();
-        assertThat(journal.getPostRecordedAt()).isNotNull();
+        assertThat(journal.isCompleted()).isTrue();
     }
 
     @Test
-    @DisplayName("completeByLookup에서 PRE-only 일지가 없으면 JournalNotFoundException을 던진다")
-    void completeByLookup_noMatchingJournal_throws404() {
+    @DisplayName("completeByLookup - PRE 일지 없으면 새 일지를 insert하고 완료 상태로 반환한다")
+    void completeByLookup_noPreJournal_insertsNewCompletedJournal() {
         User user = new User("a@b.com", "t", "n");
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(journalRepository.findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
-                1L, validDate()))
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate()))
                 .willReturn(Optional.empty());
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
         CompleteJournalRequest req = new CompleteJournalRequest();
         req.setWorkoutDate(validDate());
         req.setPostCondition(validPostCondition());
 
+        JournalDetailDto result = journalService.completeByLookup(1L, req);
+
+        assertThat(result).isNotNull();
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        assertThat(captor.getValue().isCompleted()).isTrue();
+    }
+
+    @Test
+    @DisplayName("completeByLookup - PRE 일지 없고 folderId 있으면 folder 포함 새 일지를 insert한다")
+    void completeByLookup_noPreJournal_withFolderId_savesWithFolder() {
+        User user = new User("a@b.com", "t", "n");
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        DiaryFolderMember activeMember = DiaryFolderMember.join(folder, user);
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(memberRepository.findByFolderAndUser(folder, user)).willReturn(Optional.of(activeMember));
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate())).willReturn(Optional.empty());
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        CompleteJournalRequest req = new CompleteJournalRequest();
+        req.setWorkoutDate(validDate());
+        req.setPostCondition(validPostCondition());
+        req.setFolderId(10L);
+
+        journalService.completeByLookup(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        assertThat(captor.getValue().getFolderId()).isEqualTo(10L);
+    }
+
+    @Test
+    @DisplayName("completeByLookup - folderId가 있고 멤버가 아니면 FORBIDDEN을 던진다")
+    void completeByLookup_noPreJournal_withFolderNotMember_throwsForbidden() {
+        User user = new User("a@b.com", "t", "n");
+        DiaryFolder folder = DiaryFolder.create("test folder");
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(memberRepository.findByFolderAndUser(folder, user)).willReturn(Optional.empty());
+
+        CompleteJournalRequest req = new CompleteJournalRequest();
+        req.setWorkoutDate(validDate());
+        req.setPostCondition(validPostCondition());
+        req.setFolderId(10L);
+
         assertThatThrownBy(() -> journalService.completeByLookup(1L, req))
-                .isInstanceOf(JournalNotFoundException.class);
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN));
+    }
+
+    @Test
+    @DisplayName("completeByLookup - exercises를 전달하면 운동 기록이 저장된다")
+    void completeByLookup_withExercises_savesExercises() {
+        User user = new User("a@b.com", "t", "n");
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate())).willReturn(Optional.empty());
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        ExerciseDto exerciseDto = new ExerciseDto();
+        exerciseDto.setExerciseName("스쿼트");
+        exerciseDto.setDisplayOrder(1);
+        SetDto setDto = new SetDto();
+        setDto.setSetNumber(1);
+        setDto.setReps(10);
+        setDto.setWeightKg(new BigDecimal("80.0"));
+        exerciseDto.setSets(List.of(setDto));
+
+        CompleteJournalRequest req = new CompleteJournalRequest();
+        req.setWorkoutDate(validDate());
+        req.setPostCondition(validPostCondition());
+        req.setExercises(List.of(exerciseDto));
+
+        journalService.completeByLookup(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        assertThat(captor.getValue().getExercises()).hasSize(1);
+        assertThat(captor.getValue().getExercises().get(0).getExerciseName()).isEqualTo("스쿼트");
     }
 
     @Test
@@ -551,8 +673,7 @@ class JournalServiceTest {
         User user = new User("a@b.com", "t", "n");
         WorkoutJournal journal = stubSavedJournal(validDate());
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(journalRepository.findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
-                1L, validDate()))
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate()))
                 .willReturn(Optional.of(journal));
 
         CompleteJournalRequest req = new CompleteJournalRequest();
@@ -568,25 +689,6 @@ class JournalServiceTest {
     }
 
     @Test
-    @DisplayName("completeByLookup에서 이미 완료된 일지이면 JournalNotFoundException을 던진다 (lookup 자체가 실패)")
-    void completeByLookup_alreadyCompleted_throws404() {
-        User user = new User("a@b.com", "t", "n");
-        WorkoutJournal completed = stubSavedJournal(validDate());
-        completed.applyPostCondition(6, 7, 8, 2, 9, null);
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(journalRepository.findFirstByAuthorIdAndWorkoutDateAndPostRecordedAtIsNullOrderByCreatedAtDesc(
-                1L, validDate()))
-                .willReturn(Optional.empty());
-
-        CompleteJournalRequest req = new CompleteJournalRequest();
-        req.setWorkoutDate(validDate());
-        req.setPostCondition(validPostCondition());
-
-        assertThatThrownBy(() -> journalService.completeByLookup(1L, req))
-                .isInstanceOf(JournalNotFoundException.class);
-    }
-
-    @Test
     @DisplayName("completeByLookup에 존재하지 않는 userId이면 EntityNotFoundException을 던진다")
     void completeByLookup_unknownUser_throwsEntityNotFound() {
         given(userRepository.findById(999L)).willReturn(Optional.empty());
@@ -599,24 +701,83 @@ class JournalServiceTest {
                 .isInstanceOf(EntityNotFoundException.class);
     }
 
-    @Test
-    @DisplayName("date와 from/to를 동시 지정하면 IllegalArgumentException을 던진다")
-    void getMyJournals_withDateAndRange_throwsBadRequest() {
-        LocalDate date = LocalDate.of(2026, 4, 20);
-        LocalDate from = LocalDate.of(2026, 4, 1);
-        LocalDate to = LocalDate.of(2026, 4, 30);
+    // ─── 타이머 필드 ─────────────────────────────────────────────────────────
 
-        assertThatThrownBy(() -> journalService.getMyJournals(1L, date, from, to))
-                .isInstanceOf(IllegalArgumentException.class);
+    @Test
+    @DisplayName("createJournal은 request의 startedAt을 Entity에 저장한다")
+    void createJournal_storesStartedAtFromRequest() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        LocalDateTime startedAt = LocalDateTime.of(2026, 4, 20, 9, 0);
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), null, startedAt);
+        journalService.createJournal(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        assertThat(captor.getValue().getStartedAt()).isEqualTo(startedAt);
     }
 
     @Test
-    @DisplayName("from이 to보다 나중이면 IllegalArgumentException을 던진다")
-    void getMyJournals_fromAfterTo_throwsBadRequest() {
-        LocalDate from = LocalDate.of(2026, 4, 30);
-        LocalDate to = LocalDate.of(2026, 4, 1);
+    @DisplayName("completeByLookup - 기존 PRE-only 일지의 startedAt은 덮어쓰지 않는다")
+    void completeByLookup_existingJournal_preservesStartedAt() {
+        LocalDateTime originalStartedAt = LocalDateTime.of(2026, 4, 20, 9, 0);
+        WorkoutJournal existingJournal = WorkoutJournal.builder()
+                .authorId(1L)
+                .workoutDate(validDate())
+                .startedAt(originalStartedAt)
+                .build();
+        JournalPreCondition pre = JournalPreCondition.of(existingJournal, validPreCondition());
+        existingJournal.setPreCondition(pre);
 
-        assertThatThrownBy(() -> journalService.getMyJournals(1L, null, from, to))
-                .isInstanceOf(IllegalArgumentException.class);
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate())).willReturn(Optional.of(existingJournal));
+
+        CompleteJournalRequest req = new CompleteJournalRequest();
+        req.setWorkoutDate(validDate());
+        req.setPostCondition(validPostCondition());
+        req.setStartedAt(LocalDateTime.of(2026, 4, 20, 11, 0));
+        req.setTotalDurationSeconds(300);
+
+        journalService.completeByLookup(1L, req);
+
+        assertThat(existingJournal.getStartedAt()).isEqualTo(originalStartedAt);
     }
+
+    @Test
+    @DisplayName("completeByLookup - 신규 생성 분기는 request의 startedAt을 저장한다")
+    void completeByLookup_newJournal_storesStartedAtFromRequest() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate())).willReturn(Optional.empty());
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        LocalDateTime startedAt = LocalDateTime.of(2026, 4, 20, 9, 0);
+        CompleteJournalRequest req = new CompleteJournalRequest();
+        req.setWorkoutDate(validDate());
+        req.setPostCondition(validPostCondition());
+        req.setStartedAt(startedAt);
+        req.setTotalDurationSeconds(300);
+
+        journalService.completeByLookup(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        assertThat(captor.getValue().getStartedAt()).isEqualTo(startedAt);
+    }
+
+    @Test
+    @DisplayName("updatePostCondition은 totalDurationSeconds를 Journal에 기록한다")
+    void updatePostCondition_recordsTotalDurationSeconds() {
+        WorkoutJournal journal = stubSavedJournal(validDate());
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
+        req.setPostCondition(validPostCondition());
+        req.setTotalDurationSeconds(300);
+
+        journalService.updatePostCondition(1L, 1L, req);
+
+        assertThat(journal.getTotalDurationSeconds()).isEqualTo(300);
+    }
+
 }

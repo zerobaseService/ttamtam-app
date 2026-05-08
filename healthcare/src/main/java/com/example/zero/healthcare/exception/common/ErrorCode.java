@@ -32,6 +32,10 @@ public enum ErrorCode {
     INVALID_CURSOR(400, "INVALID_CURSOR", "커서 값이 올바르지 않습니다."),
     FORBIDDEN(403, "FORBIDDEN", "해당 폴더에 대한 접근 권한이 없습니다."),
 
+    // === Upload ===
+    FILE_TOO_LARGE(413, "FILE_TOO_LARGE", "파일 크기가 허용 한도를 초과했습니다."),
+    UNSUPPORTED_FILE_TYPE(400, "UNSUPPORTED_FILE_TYPE", "지원하지 않는 파일 형식입니다."),
+
     // === Idempotency ===
     IDEMPOTENCY_KEY_REUSE(422, "IDEMPOTENCY_KEY_REUSE", "동일 키로 다른 본문을 재전송할 수 없습니다.");
 

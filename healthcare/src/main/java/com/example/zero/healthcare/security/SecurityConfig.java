@@ -4,6 +4,7 @@ import com.example.zero.healthcare.auth.JwtAuthenticationFilter;
 import com.example.zero.healthcare.auth.JwtTokenProvider;
 import com.example.zero.healthcare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -28,11 +29,16 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/static/journal-images/**").permitAll()
+                        .requestMatchers("/api/uploads/**").authenticated()
                         .requestMatchers("/api/folders/**").authenticated()
                         .requestMatchers("/api/journals/**").authenticated()
                         .anyRequest().permitAll()
                 )
+                .exceptionHandling(e -> e.authenticationEntryPoint(
+                        (req, res, ex) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, userRepository),
                         UsernamePasswordAuthenticationFilter.class)
                 .build();

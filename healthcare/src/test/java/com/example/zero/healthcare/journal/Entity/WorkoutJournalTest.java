@@ -4,15 +4,20 @@ import com.example.zero.healthcare.Entity.journal.BodyPart;
 import com.example.zero.healthcare.Entity.journal.BodySide;
 import com.example.zero.healthcare.Entity.journal.JournalAttachment;
 import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
+import com.example.zero.healthcare.Entity.journal.JournalPostCondition;
+import com.example.zero.healthcare.Entity.journal.JournalPreCondition;
 import com.example.zero.healthcare.Entity.journal.PainTiming;
+import com.example.zero.healthcare.Entity.journal.WorkoutExercise;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
+import com.example.zero.healthcare.dto.journal.PostConditionDto;
+import com.example.zero.healthcare.dto.journal.PreConditionDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class WorkoutJournalTest {
 
@@ -20,11 +25,6 @@ class WorkoutJournalTest {
         return WorkoutJournal.builder()
                 .authorId(1L)
                 .workoutDate(LocalDate.of(2026, 4, 20))
-                .preJointMusclePain(5)
-                .preSleepHours(7)
-                .preSleepQuality(6)
-                .prePreviousFatigue(4)
-                .preOverallCondition(8)
                 .build();
     }
 
@@ -37,6 +37,16 @@ class WorkoutJournalTest {
                 .build();
     }
 
+    private PostConditionDto validPostConditionDto() {
+        PostConditionDto dto = new PostConditionDto();
+        dto.setJointMusclePain(6);
+        dto.setIntensityFit(7);
+        dto.setGoalAchieved(8);
+        dto.setDizziness(2);
+        dto.setMood(9);
+        return dto;
+    }
+
     @Test
     @DisplayName("workoutDate를 빌더에 전달하면 해당 날짜로 저장된다")
     void builder_withWorkoutDate_setsWorkoutDate() {
@@ -44,11 +54,6 @@ class WorkoutJournalTest {
         WorkoutJournal journal = WorkoutJournal.builder()
                 .authorId(1L)
                 .workoutDate(date)
-                .preJointMusclePain(5)
-                .preSleepHours(7)
-                .preSleepQuality(6)
-                .prePreviousFatigue(4)
-                .preOverallCondition(8)
                 .build();
 
         assertThat(journal.getWorkoutDate()).isEqualTo(date);
@@ -80,84 +85,6 @@ class WorkoutJournalTest {
     }
 
     @Test
-    @DisplayName("신규 일지는 post 필드가 모두 null이고 postRecordedAt도 null이다")
-    void newJournal_postFieldsAreNull() {
-        WorkoutJournal journal = buildJournal();
-
-        assertThat(journal.getPostJointMusclePain()).isNull();
-        assertThat(journal.getPostIntensityFit()).isNull();
-        assertThat(journal.getPostGoalAchieved()).isNull();
-        assertThat(journal.getPostDizziness()).isNull();
-        assertThat(journal.getPostMood()).isNull();
-        assertThat(journal.getPostRecordedAt()).isNull();
-        assertThat(journal.getDeletedAt()).isNull();
-    }
-
-    @Test
-    @DisplayName("applyPostCondition은 post 필드를 세팅하고 postRecordedAt을 기록한다")
-    void applyPostCondition_setsPostFieldsAndRecordedAt() {
-        WorkoutJournal journal = buildJournal();
-
-        journal.applyPostCondition(6, 7, 8, 2, 9, "오늘 컨디션 좋았다");
-
-        assertThat(journal.getPostJointMusclePain()).isEqualTo(6);
-        assertThat(journal.getPostIntensityFit()).isEqualTo(7);
-        assertThat(journal.getPostGoalAchieved()).isEqualTo(8);
-        assertThat(journal.getPostDizziness()).isEqualTo(2);
-        assertThat(journal.getPostMood()).isEqualTo(9);
-        assertThat(journal.getContent()).isEqualTo("오늘 컨디션 좋았다");
-        assertThat(journal.getPostRecordedAt()).isNotNull();
-    }
-
-    @Test
-    @DisplayName("pre 컨디션 없이 일지를 빌드하면 pre 필드가 모두 null이다")
-    void builder_withoutPreFields_preFieldsAreNull() {
-        WorkoutJournal journal = WorkoutJournal.builder()
-                .authorId(1L)
-                .workoutDate(LocalDate.of(2026, 4, 20))
-                .build();
-
-        assertThat(journal.getPreJointMusclePain()).isNull();
-        assertThat(journal.getPreSleepHours()).isNull();
-        assertThat(journal.getPreSleepQuality()).isNull();
-        assertThat(journal.getPrePreviousFatigue()).isNull();
-        assertThat(journal.getPreOverallCondition()).isNull();
-    }
-
-    @Test
-    @DisplayName("이미지를 5개까지 첨부할 수 있다")
-    void addAttachment_max5_ok() {
-        WorkoutJournal journal = buildJournal();
-        for (int i = 0; i < 5; i++) {
-            journal.addAttachment(JournalAttachment.builder()
-                    .imageUrl("https://cdn.ttamtam.app/img" + i + ".jpg")
-                    .displayOrder(i)
-                    .build());
-        }
-        assertThat(journal.getAttachments()).hasSize(5);
-    }
-
-    @Test
-    @DisplayName("이미지 6개 이상 추가 시 IllegalStateException이 발생한다")
-    void addAttachment_over5_throwsIllegalState() {
-        WorkoutJournal journal = buildJournal();
-        for (int i = 0; i < 5; i++) {
-            journal.addAttachment(JournalAttachment.builder()
-                    .imageUrl("https://cdn.ttamtam.app/img" + i + ".jpg")
-                    .displayOrder(i)
-                    .build());
-        }
-        JournalAttachment extra = JournalAttachment.builder()
-                .imageUrl("https://cdn.ttamtam.app/extra.jpg")
-                .displayOrder(5)
-                .build();
-
-        assertThatThrownBy(() -> journal.addAttachment(extra))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("5");
-    }
-
-    @Test
     @DisplayName("addAttachment는 attachment에 journal 양방향 연관을 설정한다")
     void addAttachment_setsJournalReference() {
         WorkoutJournal journal = buildJournal();
@@ -169,5 +96,87 @@ class WorkoutJournalTest {
         journal.addAttachment(attachment);
 
         assertThat(attachment.getJournal()).isSameAs(journal);
+    }
+
+    @Test
+    @DisplayName("addExercise는 exercises 리스트에 추가하고 exercise에 journal을 설정한다")
+    void addExercise_addsToListAndSetsJournal() {
+        WorkoutJournal journal = buildJournal();
+        WorkoutExercise exercise = WorkoutExercise.builder()
+                .exerciseName("스쿼트")
+                .displayOrder(1)
+                .build();
+
+        journal.addExercise(exercise);
+
+        assertThat(journal.getExercises()).hasSize(1);
+        assertThat(journal.getExercises().get(0)).isSameAs(exercise);
+        assertThat(exercise.getJournal()).isSameAs(journal);
+    }
+
+    @Test
+    @DisplayName("postCondition이 null이면 isCompleted()는 false를 반환한다")
+    void isCompleted_withoutPostCondition_returnsFalse() {
+        WorkoutJournal journal = buildJournal();
+
+        assertThat(journal.isCompleted()).isFalse();
+    }
+
+    @Test
+    @DisplayName("postCondition이 설정되면 isCompleted()는 true를 반환한다")
+    void isCompleted_withPostCondition_returnsTrue() {
+        WorkoutJournal journal = buildJournal();
+        JournalPostCondition post = JournalPostCondition.of(journal, validPostConditionDto());
+
+        journal.setPostCondition(post);
+
+        assertThat(journal.isCompleted()).isTrue();
+    }
+
+    @Test
+    @DisplayName("setPreCondition은 양방향 연관을 설정한다")
+    void setPreCondition_setsBidirectional() {
+        WorkoutJournal journal = buildJournal();
+        JournalPreCondition pre = JournalPreCondition.of(journal, new PreConditionDto(5, 7, 6, 4, 8));
+
+        journal.setPreCondition(pre);
+
+        assertThat(journal.getPreCondition()).isSameAs(pre);
+        assertThat(pre.getJournal()).isSameAs(journal);
+    }
+
+    @Test
+    @DisplayName("setPostCondition은 양방향 연관을 설정한다")
+    void setPostCondition_setsBidirectional() {
+        WorkoutJournal journal = buildJournal();
+        JournalPostCondition post = JournalPostCondition.of(journal, validPostConditionDto());
+
+        journal.setPostCondition(post);
+
+        assertThat(journal.getPostCondition()).isSameAs(post);
+        assertThat(post.getJournal()).isSameAs(journal);
+    }
+
+    @Test
+    @DisplayName("빌더에 startedAt을 전달하면 해당 값으로 저장된다")
+    void builder_withStartedAt_setsStartedAt() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 4, 20, 9, 0);
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L)
+                .workoutDate(LocalDate.of(2026, 4, 20))
+                .startedAt(startedAt)
+                .build();
+
+        assertThat(journal.getStartedAt()).isEqualTo(startedAt);
+    }
+
+    @Test
+    @DisplayName("recordDuration(180) 호출 후 totalDurationSeconds는 180이다")
+    void recordDuration_storesDuration() {
+        WorkoutJournal journal = buildJournal();
+
+        journal.recordDuration(180);
+
+        assertThat(journal.getTotalDurationSeconds()).isEqualTo(180);
     }
 }

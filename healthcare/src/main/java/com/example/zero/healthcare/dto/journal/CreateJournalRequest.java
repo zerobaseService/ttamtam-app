@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -26,6 +27,9 @@ public class CreateJournalRequest {
 
     @Valid
     private List<PainRecordDto> painRecords;
+
+    @NotNull @PastOrPresent
+    private LocalDateTime startedAt;
 
     @AssertTrue(message = "painRecords cannot contain duplicate bodyPart+side")
     public boolean isPainRecordsUnique() {

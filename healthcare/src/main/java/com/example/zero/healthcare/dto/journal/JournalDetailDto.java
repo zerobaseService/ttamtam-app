@@ -15,46 +15,39 @@ public class JournalDetailDto {
     private final Long folderId;
     private final LocalDate workoutDate;
     private final LocalDateTime createdAt;
-    private final LocalDateTime postRecordedAt;
+    private final LocalDateTime startedAt;
+    private final Integer totalDurationSeconds;
 
-    private final Integer preJointMusclePain;
-    private final Integer preSleepHours;
-    private final Integer preSleepQuality;
-    private final Integer prePreviousFatigue;
-    private final Integer preOverallCondition;
-
-    private final Integer postJointMusclePain;
-    private final Integer postIntensityFit;
-    private final Integer postGoalAchieved;
-    private final Integer postDizziness;
-    private final Integer postMood;
+    private final PreConditionResponseDto preCondition;
+    private final PostConditionResponseDto postCondition;
 
     private final String content;
     private final List<PainRecordResponseDto> painRecords;
+    private final List<AttachmentDto> attachments;
+    private final List<ExerciseResponseDto> exercises;
 
     public JournalDetailDto(WorkoutJournal journal) {
         this.journalId = journal.getId();
         this.folderId = journal.getFolderId();
         this.workoutDate = journal.getWorkoutDate();
         this.createdAt = journal.getCreatedAt();
-        this.postRecordedAt = journal.getPostRecordedAt();
+        this.startedAt = journal.getStartedAt();
+        this.totalDurationSeconds = journal.getTotalDurationSeconds();
 
-        this.preJointMusclePain = journal.getPreJointMusclePain();
-        this.preSleepHours = journal.getPreSleepHours();
-        this.preSleepQuality = journal.getPreSleepQuality();
-        this.prePreviousFatigue = journal.getPrePreviousFatigue();
-        this.preOverallCondition = journal.getPreOverallCondition();
-
-        this.postJointMusclePain = journal.getPostJointMusclePain();
-        this.postIntensityFit = journal.getPostIntensityFit();
-        this.postGoalAchieved = journal.getPostGoalAchieved();
-        this.postDizziness = journal.getPostDizziness();
-        this.postMood = journal.getPostMood();
+        this.preCondition = journal.getPreCondition() != null
+                ? new PreConditionResponseDto(journal.getPreCondition()) : null;
+        this.postCondition = journal.getPostCondition() != null
+                ? new PostConditionResponseDto(journal.getPostCondition()) : null;
 
         this.content = journal.getContent();
         this.painRecords = journal.getPainRecords().stream()
                 .map(PainRecordResponseDto::new)
                 .collect(Collectors.toList());
-
+        this.attachments = journal.getAttachments().stream()
+                .map(AttachmentDto::new)
+                .collect(Collectors.toList());
+        this.exercises = journal.getExercises().stream()
+                .map(ExerciseResponseDto::new)
+                .collect(Collectors.toList());
     }
 }

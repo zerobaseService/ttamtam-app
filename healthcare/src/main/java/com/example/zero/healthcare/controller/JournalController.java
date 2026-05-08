@@ -6,7 +6,7 @@ import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
 import com.example.zero.healthcare.dto.journal.JournalDetailDto;
 import com.example.zero.healthcare.dto.journal.JournalSummaryDto;
-import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
+// import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest; // 미사용
 import com.example.zero.healthcare.service.JournalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
+// import org.springframework.web.bind.annotation.PatchMapping; // 미사용
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,17 +45,7 @@ public class JournalController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(data));
     }
 
-    @Operation(summary = "운동 후 기록 추가 (PATCH)")
-    @PatchMapping("/{id}/post")
-    public ResponseEntity<ApiResponse<JournalDetailDto>> updatePost(
-            @AuthenticationPrincipal Long userId,
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateJournalPostRequest request) {
-        JournalDetailDto data = journalService.updatePostCondition(userId, id, request);
-        return ResponseEntity.ok(ApiResponse.ok(data));
-    }
-
-    @Operation(summary = "journalId 없이 운동 후 기록 완료 (lookup-based update)")
+    @Operation(summary = "운동 완료 — workoutDate로 PRE 일지 lookup 후 update, 없으면 insert (upsert)")
     @PostMapping("/complete")
     public ResponseEntity<ApiResponse<JournalDetailDto>> complete(
             @AuthenticationPrincipal Long userId,
@@ -83,4 +73,5 @@ public class JournalController {
         JournalDetailDto data = journalService.getJournalDetail(userId, id);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
+
 }
