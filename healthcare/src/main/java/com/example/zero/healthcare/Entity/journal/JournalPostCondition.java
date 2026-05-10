@@ -59,6 +59,14 @@ public class JournalPostCondition {
         return post;
     }
 
+    public void update(PostConditionDto dto) {
+        this.jointMusclePain = dto.getJointMusclePain();
+        this.intensityFit = dto.getIntensityFit();
+        this.goalAchieved = dto.getGoalAchieved();
+        this.dizziness = dto.getDizziness();
+        this.mood = dto.getMood();
+    }
+
     void setJournal(WorkoutJournal journal) {
         this.journal = journal;
     }

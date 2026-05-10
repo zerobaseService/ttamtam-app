@@ -6,7 +6,7 @@ import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
 import com.example.zero.healthcare.dto.journal.JournalDetailDto;
 import com.example.zero.healthcare.dto.journal.JournalSummaryDto;
-// import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest; // 미사용
+import com.example.zero.healthcare.dto.journal.UpdateJournalRequest;
 import com.example.zero.healthcare.service.JournalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,9 +16,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
-// import org.springframework.web.bind.annotation.PatchMapping; // 미사용
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -72,6 +72,16 @@ public class JournalController {
             @AuthenticationPrincipal Long userId,
             @PathVariable Long id) {
         JournalDetailDto data = journalService.getJournalDetail(userId, id);
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    @Operation(summary = "일지 수정 (PATCH — null 필드는 변경 없음)")
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<JournalDetailDto>> update(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateJournalRequest request) {
+        JournalDetailDto data = journalService.updateJournal(userId, id, request);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 

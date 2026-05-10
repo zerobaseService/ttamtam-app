@@ -20,6 +20,8 @@ public enum ErrorCode {
     JOURNAL_NOT_FOUND(404, "JOURNAL_NOT_FOUND", "존재하지 않는 일지입니다."),
     POST_ALREADY_RECORDED(409, "POST_ALREADY_RECORDED", "이미 운동 후 기록이 완료된 일지입니다."),
     JOURNAL_FORBIDDEN(403, "JOURNAL_FORBIDDEN", "해당 일지에 대한 접근 권한이 없습니다."),
+    PRE_NOT_RECORDED(409, "PRE_NOT_RECORDED", "운동 전 기록이 없는 일지입니다."),
+    POST_NOT_RECORDED(409, "POST_NOT_RECORDED", "운동 후 기록이 없는 일지입니다."),
 
     // === Folder ===
     FOLDER_NOT_FOUND(404, "FOLDER_NOT_FOUND", "폴더를 찾을 수 없습니다."),

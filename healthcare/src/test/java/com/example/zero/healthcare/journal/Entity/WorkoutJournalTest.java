@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -178,5 +179,56 @@ class WorkoutJournalTest {
         journal.recordDuration(180);
 
         assertThat(journal.getTotalDurationSeconds()).isEqualTo(180);
+    }
+
+    @Test
+    @DisplayName("replacePainRecords(PRE) 호출 시 PRE 통증은 교체되고 POST 통증은 유지된다")
+    void replacePainRecords_PRE_keepsPOST() {
+        WorkoutJournal journal = buildJournal();
+        JournalPainRecord preRecord = buildRecord(BodyPart.SHOULDER, BodySide.LEFT);
+        JournalPainRecord postRecord = JournalPainRecord.builder()
+                .timing(PainTiming.POST).bodyPart(BodyPart.KNEE).side(BodySide.RIGHT).painLevel(3).build();
+        journal.addPainRecord(preRecord);
+        journal.addPainRecord(postRecord);
+
+        JournalPainRecord newPreRecord = JournalPainRecord.builder()
+                .timing(PainTiming.PRE).bodyPart(BodyPart.KNEE).side(BodySide.LEFT).painLevel(7).build();
+        journal.replacePainRecords(PainTiming.PRE, List.of(newPreRecord));
+
+        assertThat(journal.getPainRecords()).hasSize(2);
+        assertThat(journal.getPainRecords().stream()
+                .filter(r -> r.getTiming() == PainTiming.PRE)
+                .map(JournalPainRecord::getBodyPart))
+                .containsExactly(BodyPart.KNEE);
+        assertThat(journal.getPainRecords().stream()
+                .anyMatch(r -> r.getTiming() == PainTiming.POST)).isTrue();
+    }
+
+    @Test
+    @DisplayName("replaceAttachments 호출 시 기존 항목은 제거되고 displayOrder가 0부터 재할당된다")
+    void replaceAttachments_resetsDisplayOrder() {
+        WorkoutJournal journal = buildJournal();
+        journal.addAttachment(JournalAttachment.builder().imageUrl("https://cdn.ttamtam.app/old.jpg").displayOrder(0).build());
+
+        journal.replaceAttachments(List.of(
+                "https://cdn.ttamtam.app/a.jpg",
+                "https://cdn.ttamtam.app/b.jpg"
+        ));
+
+        assertThat(journal.getAttachments()).hasSize(2);
+        assertThat(journal.getAttachments().get(0).getImageUrl()).isEqualTo("https://cdn.ttamtam.app/a.jpg");
+        assertThat(journal.getAttachments().get(0).getDisplayOrder()).isEqualTo(0);
+        assertThat(journal.getAttachments().get(1).getDisplayOrder()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("touch() 호출 후 updatedAt이 갱신된다")
+    void touch_updatesUpdatedAt() throws InterruptedException {
+        WorkoutJournal journal = buildJournal();
+
+        Thread.sleep(1);
+        journal.touch();
+
+        assertThat(journal.getUpdatedAt()).isNotNull();
     }
 }

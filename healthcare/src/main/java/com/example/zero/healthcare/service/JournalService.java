@@ -22,12 +22,9 @@ import com.example.zero.healthcare.dto.journal.JournalSummaryDto;
 import com.example.zero.healthcare.dto.journal.PainRecordDto;
 import com.example.zero.healthcare.dto.journal.PostConditionDto;
 import com.example.zero.healthcare.dto.journal.SetDto;
-import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
+import com.example.zero.healthcare.dto.journal.UpdateJournalRequest;
 import com.example.zero.healthcare.exception.CoreException;
 import com.example.zero.healthcare.exception.common.ErrorCode;
-import com.example.zero.healthcare.exception.journal.JournalForbiddenException;
-import com.example.zero.healthcare.exception.journal.JournalNotFoundException;
-import com.example.zero.healthcare.exception.journal.PostAlreadyRecordedException;
 import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
 import com.example.zero.healthcare.repository.DiaryFolderRepository;
 import com.example.zero.healthcare.repository.JournalPostConditionRepository;
@@ -89,23 +86,6 @@ public class JournalService {
 
         WorkoutJournal saved = journalRepository.save(journal);
         return new CreateJournalResponse(saved.getId(), saved.getCreatedAt());
-    }
-
-    @Transactional
-    public JournalDetailDto updatePostCondition(Long userId, Long journalId, UpdateJournalPostRequest request) {
-        WorkoutJournal journal = journalRepository.findById(journalId)
-                .orElseThrow(JournalNotFoundException::new);
-
-        verifyJournalAccess(journal, userId);
-
-        if (journal.isCompleted()) {
-            throw new PostAlreadyRecordedException();
-        }
-
-        applyPostFinalize(journal, request.getPostCondition(), request.getPainRecords(),
-                request.getContent(), request.getImageUrls(), request.getTotalDurationSeconds());
-
-        return new JournalDetailDto(journal);
     }
 
     @Transactional
@@ -224,7 +204,7 @@ public class JournalService {
     @Transactional(readOnly = true)
     public JournalDetailDto getJournalDetail(Long userId, Long journalId) {
         WorkoutJournal journal = journalRepository.findById(journalId)
-                .orElseThrow(JournalNotFoundException::new);
+                .orElseThrow(() -> new CoreException(ErrorCode.JOURNAL_NOT_FOUND));
         verifyJournalAccess(journal, userId);
         return new JournalDetailDto(journal);
     }
@@ -232,11 +212,99 @@ public class JournalService {
     @Transactional
     public void deleteJournal(Long userId, Long journalId) {
         WorkoutJournal journal = journalRepository.findById(journalId)
-                .orElseThrow(JournalNotFoundException::new);
+                .orElseThrow(() -> new CoreException(ErrorCode.JOURNAL_NOT_FOUND));
         if (!journal.getAuthorId().equals(userId)) {
-            throw new JournalForbiddenException();
+            throw new CoreException(ErrorCode.JOURNAL_FORBIDDEN);
         }
         journalRepository.softDeleteById(journalId);
+    }
+
+    @Transactional
+    public JournalDetailDto updateJournal(Long userId, Long journalId, UpdateJournalRequest request) {
+        WorkoutJournal journal = journalRepository.findById(journalId)
+                .orElseThrow(() -> new CoreException(ErrorCode.JOURNAL_NOT_FOUND));
+        verifyJournalAccess(journal, userId);
+        applyUpdate(journal, request);
+        return new JournalDetailDto(journal);
+    }
+
+    private void applyUpdate(WorkoutJournal journal, UpdateJournalRequest request) {
+        boolean changed = false;
+        if (request.getPreCondition() != null) {
+            updatePreCondition(journal, request.getPreCondition());
+            changed = true;
+        }
+        if (request.getPostCondition() != null) {
+            updatePostConditionField(journal, request.getPostCondition());
+            changed = true;
+        }
+        if (request.getPrePainRecords() != null) {
+            replacePainRecords(journal, PainTiming.PRE, request.getPrePainRecords());
+            changed = true;
+        }
+        if (request.getPostPainRecords() != null) {
+            replacePainRecords(journal, PainTiming.POST, request.getPostPainRecords());
+            changed = true;
+        }
+        if (request.getContent() != null) {
+            journal.updateContent(request.getContent());
+            changed = true;
+        }
+        if (request.getImageUrls() != null) {
+            journal.replaceAttachments(request.getImageUrls());
+            changed = true;
+        }
+        if (changed) {
+            journal.touch();
+        }
+    }
+
+    private void updatePreCondition(WorkoutJournal journal, com.example.zero.healthcare.dto.journal.PreConditionDto dto) {
+        if (journal.getPreCondition() == null) {
+            throw new CoreException(ErrorCode.PRE_NOT_RECORDED);
+        }
+        journal.getPreCondition().update(dto);
+    }
+
+    private void updatePostConditionField(WorkoutJournal journal, PostConditionDto dto) {
+        if (journal.getPostCondition() == null) {
+            throw new CoreException(ErrorCode.POST_NOT_RECORDED);
+        }
+        journal.getPostCondition().update(dto);
+    }
+
+    private void replacePainRecords(WorkoutJournal journal, PainTiming timing, List<PainRecordDto> dtos) {
+        if (timing == PainTiming.PRE && journal.getPreCondition() == null) {
+            throw new CoreException(ErrorCode.PRE_NOT_RECORDED);
+        }
+        if (timing == PainTiming.POST && journal.getPostCondition() == null) {
+            throw new CoreException(ErrorCode.POST_NOT_RECORDED);
+        }
+        validateNoDuplicatePainRecords(dtos);
+
+        // UNIQUE(journal_id, timing, body_part, side) 제약 위반 방지:
+        // Hibernate는 INSERT를 DELETE보다 먼저 실행하므로, 삭제 후 flush()로 DELETE를 선행시킨다.
+        journal.getPainRecords().removeIf(r -> r.getTiming() == timing);
+        journalRepository.flush();
+
+        dtos.stream()
+                .map(dto -> JournalPainRecord.builder()
+                        .timing(timing)
+                        .bodyPart(BodyPart.valueOf(dto.getBodyPart()))
+                        .side(BodySide.valueOf(dto.getSide()))
+                        .painLevel(dto.getPainLevel())
+                        .build())
+                .forEach(journal::addPainRecord);
+    }
+
+    private void validateNoDuplicatePainRecords(List<PainRecordDto> dtos) {
+        long distinct = dtos.stream()
+                .map(dto -> dto.getBodyPart() + "|" + dto.getSide())
+                .distinct()
+                .count();
+        if (distinct < dtos.size()) {
+            throw new IllegalArgumentException("동일한 신체 부위와 방향의 통증 기록이 중복되었습니다.");
+        }
     }
 
     private void verifyJournalAccess(WorkoutJournal journal, Long userId) {
@@ -245,9 +313,9 @@ public class JournalService {
         }
         if (journal.getFolderId() != null) {
             DiaryFolder folder = folderRepository.findById(journal.getFolderId())
-                    .orElseThrow(JournalForbiddenException::new);
+                    .orElseThrow(() -> new CoreException(ErrorCode.JOURNAL_FORBIDDEN));
             User user = userRepository.findById(userId)
-                    .orElseThrow(JournalForbiddenException::new);
+                    .orElseThrow(() -> new CoreException(ErrorCode.JOURNAL_FORBIDDEN));
             boolean isActiveMember = memberRepository.findByFolderAndUser(folder, user)
                     .map(DiaryFolderMember::isActive)
                     .orElse(false);
@@ -255,6 +323,6 @@ public class JournalService {
                 return;
             }
         }
-        throw new JournalForbiddenException();
+        throw new CoreException(ErrorCode.JOURNAL_FORBIDDEN);
     }
 }

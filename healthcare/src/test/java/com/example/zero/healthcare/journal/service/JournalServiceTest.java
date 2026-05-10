@@ -2,6 +2,10 @@ package com.example.zero.healthcare.journal.service;
 
 import com.example.zero.healthcare.Entity.DiaryFolder;
 import com.example.zero.healthcare.Entity.DiaryFolderMember;
+import com.example.zero.healthcare.Entity.journal.BodyPart;
+import com.example.zero.healthcare.Entity.journal.BodySide;
+import com.example.zero.healthcare.Entity.journal.JournalAttachment;
+import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
 import com.example.zero.healthcare.Entity.journal.JournalPostCondition;
 import com.example.zero.healthcare.Entity.journal.JournalPreCondition;
 import com.example.zero.healthcare.Entity.journal.PainTiming;
@@ -17,12 +21,9 @@ import com.example.zero.healthcare.dto.journal.PainRecordDto;
 import com.example.zero.healthcare.dto.journal.PostConditionDto;
 import com.example.zero.healthcare.dto.journal.PreConditionDto;
 import com.example.zero.healthcare.dto.journal.SetDto;
-import com.example.zero.healthcare.dto.journal.UpdateJournalPostRequest;
+import com.example.zero.healthcare.dto.journal.UpdateJournalRequest;
 import com.example.zero.healthcare.exception.CoreException;
 import com.example.zero.healthcare.exception.common.ErrorCode;
-import com.example.zero.healthcare.exception.journal.JournalForbiddenException;
-import com.example.zero.healthcare.exception.journal.JournalNotFoundException;
-import com.example.zero.healthcare.exception.journal.PostAlreadyRecordedException;
 import com.example.zero.healthcare.repository.DiaryFolderMemberRepository;
 import com.example.zero.healthcare.repository.DiaryFolderRepository;
 import com.example.zero.healthcare.repository.JournalPostConditionRepository;
@@ -48,6 +49,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -258,86 +261,6 @@ class JournalServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    // ─── updatePostCondition ─────────────────────────────────────────────────
-
-    @Test
-    @DisplayName("updatePostCondition은 JournalDetailDto를 반환한다")
-    void updatePostCondition_returnsJournalDetailDto() {
-        WorkoutJournal journal = stubSavedJournal(validDate());
-        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
-
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
-        req.setPostCondition(validPostCondition());
-
-        JournalDetailDto result = journalService.updatePostCondition(1L, 1L, req);
-
-        assertThat(result).isNotNull();
-    }
-
-    @Test
-    @DisplayName("updatePostCondition에 imageUrls를 전달하면 attachments로 저장된다")
-    void updatePostCondition_withImageUrls_savesAttachments() {
-        WorkoutJournal journal = stubSavedJournal(validDate());
-        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
-
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
-        req.setPostCondition(validPostCondition());
-        req.setImageUrls(List.of(
-                "https://cdn.ttamtam.app/img0.jpg",
-                "https://cdn.ttamtam.app/img1.jpg"
-        ));
-
-        journalService.updatePostCondition(1L, 1L, req);
-
-        assertThat(journal.getAttachments()).hasSize(2);
-        assertThat(journal.getAttachments().get(0).getImageUrl()).isEqualTo("https://cdn.ttamtam.app/img0.jpg");
-        assertThat(journal.getAttachments().get(0).getDisplayOrder()).isEqualTo(0);
-        assertThat(journal.getAttachments().get(1).getDisplayOrder()).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("updatePostCondition의 painRecords는 PainTiming.POST로 저장된다")
-    void updatePostCondition_painRecords_savedAsPostTiming() {
-        WorkoutJournal journal = stubSavedJournal(validDate());
-        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
-
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
-        req.setPostCondition(validPostCondition());
-        req.setPainRecords(List.of(new PainRecordDto("SHOULDER", "LEFT", 5)));
-
-        journalService.updatePostCondition(1L, 1L, req);
-
-        assertThat(journal.getPainRecords())
-                .hasSize(1)
-                .allMatch(r -> r.getTiming() == PainTiming.POST);
-    }
-
-    @Test
-    @DisplayName("이미 기록 완료된 일지에 updatePostCondition 호출 시 PostAlreadyRecordedException을 던진다")
-    void updatePostCondition_alreadyRecorded_throwsConflict() {
-        WorkoutJournal journal = stubSavedJournal(validDate());
-        journal.setPostCondition(JournalPostCondition.of(journal, validPostCondition()));
-        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
-
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
-        req.setPostCondition(validPostCondition());
-
-        assertThatThrownBy(() -> journalService.updatePostCondition(1L, 1L, req))
-                .isInstanceOf(PostAlreadyRecordedException.class);
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 journalId로 updatePostCondition 호출 시 JournalNotFoundException을 던진다")
-    void updatePostCondition_unknownJournal_throwsNotFound() {
-        given(journalRepository.findById(999L)).willReturn(Optional.empty());
-
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
-        req.setPostCondition(validPostCondition());
-
-        assertThatThrownBy(() -> journalService.updatePostCondition(1L, 999L, req))
-                .isInstanceOf(JournalNotFoundException.class);
-    }
-
     // ─── getJournalDetail 권한 검증 ──────────────────────────────────────────
 
     @Test
@@ -358,7 +281,8 @@ class JournalServiceTest {
         given(journalRepository.findById(42L)).willReturn(Optional.of(journal));
 
         assertThatThrownBy(() -> journalService.getJournalDetail(2L, 42L))
-                .isInstanceOf(JournalForbiddenException.class);
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_FORBIDDEN));
     }
 
     @Test
@@ -398,7 +322,8 @@ class JournalServiceTest {
         given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(inactiveMember));
 
         assertThatThrownBy(() -> journalService.getJournalDetail(2L, 42L))
-                .isInstanceOf(JournalForbiddenException.class);
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_FORBIDDEN));
     }
 
     @Test
@@ -416,69 +341,10 @@ class JournalServiceTest {
         given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> journalService.getJournalDetail(2L, 42L))
-                .isInstanceOf(JournalForbiddenException.class);
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_FORBIDDEN));
     }
 
-    // ─── updatePostCondition 권한 검증 ───────────────────────────────────────
-
-    @Test
-    @DisplayName("다른 사용자 일지(폴더 없음)에 updatePostCondition 시 JournalForbiddenException을 던진다")
-    void updatePostCondition_otherUser_noFolder_throwsForbidden() {
-        WorkoutJournal journal = stubSavedJournal(validDate());
-        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
-
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
-        req.setPostCondition(validPostCondition());
-
-        assertThatThrownBy(() -> journalService.updatePostCondition(2L, 1L, req))
-                .isInstanceOf(JournalForbiddenException.class);
-    }
-
-    @Test
-    @DisplayName("같은 폴더 활성 멤버는 다른 사용자의 일지에 updatePostCondition 가능")
-    void updatePostCondition_otherUser_sameFolderActiveMember_succeeds() {
-        WorkoutJournal journal = WorkoutJournal.builder()
-                .authorId(1L).folderId(10L).workoutDate(validDate())
-                .build();
-        DiaryFolder folder = DiaryFolder.create("test folder");
-        User user2 = new User("other@b.com", "token2", "other");
-        DiaryFolderMember activeMember = DiaryFolderMember.join(folder, user2);
-
-        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
-        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
-        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
-        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(activeMember));
-
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
-        req.setPostCondition(validPostCondition());
-
-        JournalDetailDto result = journalService.updatePostCondition(2L, 1L, req);
-
-        assertThat(result).isNotNull();
-    }
-
-    @Test
-    @DisplayName("같은 폴더를 나간 멤버는 다른 사용자의 일지에 updatePostCondition 불가")
-    void updatePostCondition_otherUser_sameFolderInactiveMember_throwsForbidden() {
-        WorkoutJournal journal = WorkoutJournal.builder()
-                .authorId(1L).folderId(10L).workoutDate(validDate())
-                .build();
-        DiaryFolder folder = DiaryFolder.create("test folder");
-        User user2 = new User("other@b.com", "token2", "other");
-        DiaryFolderMember inactiveMember = DiaryFolderMember.join(folder, user2);
-        inactiveMember.leave();
-
-        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
-        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
-        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
-        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(inactiveMember));
-
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
-        req.setPostCondition(validPostCondition());
-
-        assertThatThrownBy(() -> journalService.updatePostCondition(2L, 1L, req))
-                .isInstanceOf(JournalForbiddenException.class);
-    }
 
     // ─── createJournal 폴더 멤버십 검증 ─────────────────────────────────────
 
@@ -787,7 +653,8 @@ class JournalServiceTest {
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
         assertThatThrownBy(() -> journalService.deleteJournal(2L, 1L))
-                .isInstanceOf(JournalForbiddenException.class);
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_FORBIDDEN));
     }
 
     @Test
@@ -797,7 +664,8 @@ class JournalServiceTest {
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
         assertThatThrownBy(() -> journalService.deleteJournal(2L, 1L))
-                .isInstanceOf(JournalForbiddenException.class);
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_FORBIDDEN));
     }
 
     @Test
@@ -806,22 +674,408 @@ class JournalServiceTest {
         given(journalRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> journalService.deleteJournal(1L, 999L))
-                .isInstanceOf(JournalNotFoundException.class);
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_NOT_FOUND));
+    }
+
+    // ─── updateJournal ───────────────────────────────────────────────────────
+
+    private UpdateJournalRequest emptyUpdateRequest() {
+        return new UpdateJournalRequest();
+    }
+
+    private WorkoutJournal stubJournalWithBoth() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L)
+                .workoutDate(validDate())
+                .build();
+        JournalPreCondition pre = JournalPreCondition.of(journal, validPreCondition());
+        journal.setPreCondition(pre);
+        JournalPostCondition post = JournalPostCondition.of(journal, validPostCondition());
+        journal.setPostCondition(post);
+        return journal;
+    }
+
+    private WorkoutJournal stubJournalPreOnly() {
+        return stubSavedJournal(validDate());
+    }
+
+    private WorkoutJournal stubJournalPostOnly() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L)
+                .workoutDate(validDate())
+                .build();
+        JournalPostCondition post = JournalPostCondition.of(journal, validPostCondition());
+        journal.setPostCondition(post);
+        return journal;
     }
 
     @Test
-    @DisplayName("updatePostCondition은 totalDurationSeconds를 Journal에 기록한다")
-    void updatePostCondition_recordsTotalDurationSeconds() {
-        WorkoutJournal journal = stubSavedJournal(validDate());
+    @DisplayName("일지가 없으면 JournalNotFoundException을 던진다")
+    void updateJournal_journalNotFound_throws() {
+        given(journalRepository.findById(999L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> journalService.updateJournal(1L, 999L, emptyUpdateRequest()))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("작성자도 아니고 폴더도 없으면 JournalForbiddenException을 던진다")
+    void updateJournal_notAuthor_noFolderJournal_throwsForbidden() {
+        WorkoutJournal journal = stubSavedJournal(validDate()); // authorId=1
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
-        UpdateJournalPostRequest req = new UpdateJournalPostRequest();
+        assertThatThrownBy(() -> journalService.updateJournal(2L, 1L, emptyUpdateRequest()))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_FORBIDDEN));
+    }
+
+    @Test
+    @DisplayName("작성자가 아니어도 active 폴더 멤버이면 수정에 성공한다")
+    void updateJournal_notAuthor_activeMember_succeeds() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .build();
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        User user2 = new User("other@b.com", "token2", "other");
+        DiaryFolderMember activeMember = DiaryFolderMember.join(folder, user2);
+
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(activeMember));
+
+        JournalDetailDto result = journalService.updateJournal(2L, 1L, emptyUpdateRequest());
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("inactive 폴더 멤버이면 수정 시 JournalForbiddenException을 던진다")
+    void updateJournal_notAuthor_inactiveMember_throwsForbidden() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .build();
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        User user2 = new User("other@b.com", "token2", "other");
+        DiaryFolderMember inactiveMember = DiaryFolderMember.join(folder, user2);
+        inactiveMember.leave();
+
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.of(inactiveMember));
+
+        assertThatThrownBy(() -> journalService.updateJournal(2L, 1L, emptyUpdateRequest()))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_FORBIDDEN));
+    }
+
+    @Test
+    @DisplayName("작성자가 아니고 폴더 멤버가 아닌 경우 JournalForbiddenException을 던진다")
+    void updateJournal_notAuthor_notMember_throwsForbidden() {
+        WorkoutJournal journal = WorkoutJournal.builder()
+                .authorId(1L).folderId(10L).workoutDate(validDate())
+                .build();
+        DiaryFolder folder = DiaryFolder.create("test folder");
+        User user2 = new User("other@b.com", "token2", "other");
+
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(folder));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(memberRepository.findByFolderAndUser(folder, user2)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> journalService.updateJournal(2L, 1L, emptyUpdateRequest()))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.JOURNAL_FORBIDDEN));
+    }
+
+    @Test
+    @DisplayName("content만 수정하면 content가 바뀌고 나머지는 그대로다")
+    void updateJournal_onlyContent_replacesContent_andOthersUntouched() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setContent("새 메모");
+
+        journalService.updateJournal(1L, 1L, req);
+
+        assertThat(journal.getContent()).isEqualTo("새 메모");
+        assertThat(journal.getPainRecords()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("content를 빈 문자열로 전송하면 메모가 빈 값으로 저장된다")
+    void updateJournal_emptyContent_clearsContent() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        journal.updateContent("기존 메모");
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setContent("");
+
+        journalService.updateJournal(1L, 1L, req);
+
+        assertThat(journal.getContent()).isEqualTo("");
+    }
+
+    @Test
+    @DisplayName("모든 필드가 null이면 아무 변경도 없고 touch가 호출되지 않는다")
+    void updateJournal_allFieldsNull_noOp_doesNotTouch() {
+        WorkoutJournal journal = spy(stubJournalWithBoth());
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        journalService.updateJournal(1L, 1L, emptyUpdateRequest());
+
+        verify(journal, never()).touch();
+    }
+
+    @Test
+    @DisplayName("한 필드라도 변경되면 touch가 호출된다")
+    void updateJournal_anyChange_callsTouch() {
+        WorkoutJournal journal = spy(stubJournalWithBoth());
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setContent("변경");
+
+        journalService.updateJournal(1L, 1L, req);
+
+        verify(journal).touch();
+    }
+
+    @Test
+    @DisplayName("imageUrls를 전달하면 attachments가 순서대로 교체된다")
+    void updateJournal_imageUrls_replacesAttachments_inOrder() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setImageUrls(List.of("https://cdn.ttamtam.app/a.jpg", "https://cdn.ttamtam.app/b.jpg"));
+
+        journalService.updateJournal(1L, 1L, req);
+
+        assertThat(journal.getAttachments()).hasSize(2);
+        assertThat(journal.getAttachments().get(0).getImageUrl()).isEqualTo("https://cdn.ttamtam.app/a.jpg");
+        assertThat(journal.getAttachments().get(0).getDisplayOrder()).isEqualTo(0);
+        assertThat(journal.getAttachments().get(1).getDisplayOrder()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("imageUrls를 빈 배열로 전달하면 attachments가 모두 삭제된다")
+    void updateJournal_emptyImageUrls_clearsAttachments() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        journal.addAttachment(JournalAttachment.builder().imageUrl("https://cdn.ttamtam.app/x.jpg").displayOrder(0).build());
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setImageUrls(List.of());
+
+        journalService.updateJournal(1L, 1L, req);
+
+        assertThat(journal.getAttachments()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("pre 데이터 없는 일지에 prePainRecords 전달 시 PreNotRecordedException을 던진다")
+    void updateJournal_prePainRecords_butNoPre_throwsPreNotRecorded() {
+        WorkoutJournal journal = stubJournalPostOnly();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPrePainRecords(List.of(new PainRecordDto("SHOULDER", "LEFT", 5)));
+
+        assertThatThrownBy(() -> journalService.updateJournal(1L, 1L, req))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.PRE_NOT_RECORDED));
+    }
+
+    @Test
+    @DisplayName("prePainRecords를 교체해도 POST 통증은 유지된다")
+    void updateJournal_prePainRecords_replacesPRE_keepsPOST() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        journal.addPainRecord(JournalPainRecord.builder()
+                .timing(PainTiming.POST).bodyPart(BodyPart.KNEE).side(BodySide.RIGHT).painLevel(3).build());
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPrePainRecords(List.of(new PainRecordDto("SHOULDER", "LEFT", 7)));
+
+        journalService.updateJournal(1L, 1L, req);
+
+        long preCount = journal.getPainRecords().stream().filter(r -> r.getTiming() == PainTiming.PRE).count();
+        long postCount = journal.getPainRecords().stream().filter(r -> r.getTiming() == PainTiming.POST).count();
+        assertThat(preCount).isEqualTo(1);
+        assertThat(postCount).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("post 데이터 없는 일지에 postPainRecords 전달 시 PostNotRecordedException을 던진다")
+    void updateJournal_postPainRecords_butNoPost_throwsPostNotRecorded() {
+        WorkoutJournal journal = stubJournalPreOnly();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPostPainRecords(List.of(new PainRecordDto("KNEE", "RIGHT", 4)));
+
+        assertThatThrownBy(() -> journalService.updateJournal(1L, 1L, req))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.POST_NOT_RECORDED));
+    }
+
+    @Test
+    @DisplayName("postPainRecords를 교체해도 PRE 통증은 유지된다")
+    void updateJournal_postPainRecords_replacesPOST_keepsPRE() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        journal.addPainRecord(JournalPainRecord.builder()
+                .timing(PainTiming.PRE).bodyPart(BodyPart.SHOULDER).side(BodySide.LEFT).painLevel(5).build());
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPostPainRecords(List.of(new PainRecordDto("KNEE", "RIGHT", 3)));
+
+        journalService.updateJournal(1L, 1L, req);
+
+        long preCount = journal.getPainRecords().stream().filter(r -> r.getTiming() == PainTiming.PRE).count();
+        long postCount = journal.getPainRecords().stream().filter(r -> r.getTiming() == PainTiming.POST).count();
+        assertThat(preCount).isEqualTo(1);
+        assertThat(postCount).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("통증 기록에 같은 bodyPart+side 중복이 있으면 IllegalArgumentException을 던진다")
+    void updateJournal_painRecords_duplicateBodyPartAndSide_throwsBadRequest() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPrePainRecords(List.of(
+                new PainRecordDto("SHOULDER", "LEFT", 5),
+                new PainRecordDto("SHOULDER", "LEFT", 7)
+        ));
+
+        assertThatThrownBy(() -> journalService.updateJournal(1L, 1L, req))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("pre 데이터 없는 일지에 preCondition 전달 시 PreNotRecordedException을 던진다")
+    void updateJournal_preCondition_butNoPre_throwsPreNotRecorded() {
+        WorkoutJournal journal = stubJournalPostOnly();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPreCondition(validPreCondition());
+
+        assertThatThrownBy(() -> journalService.updateJournal(1L, 1L, req))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.PRE_NOT_RECORDED));
+    }
+
+    @Test
+    @DisplayName("preCondition 수정 시 모든 필드가 갱신된다")
+    void updateJournal_preCondition_updatesValues() {
+        WorkoutJournal journal = stubJournalPreOnly();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        PreConditionDto newDto = new PreConditionDto(1, 2, 3, 4, 5);
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPreCondition(newDto);
+
+        journalService.updateJournal(1L, 1L, req);
+
+        assertThat(journal.getPreCondition().getJointMusclePain()).isEqualTo(1);
+        assertThat(journal.getPreCondition().getSleepHours()).isEqualTo(2);
+        assertThat(journal.getPreCondition().getOverallCondition()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("post 데이터 없는 일지에 postCondition 전달 시 PostNotRecordedException을 던진다")
+    void updateJournal_postCondition_butNoPost_throwsPostNotRecorded() {
+        WorkoutJournal journal = stubJournalPreOnly();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
         req.setPostCondition(validPostCondition());
-        req.setTotalDurationSeconds(300);
 
-        journalService.updatePostCondition(1L, 1L, req);
+        assertThatThrownBy(() -> journalService.updateJournal(1L, 1L, req))
+                .isInstanceOf(CoreException.class)
+                .satisfies(e -> assertThat(((CoreException) e).getErrorCode()).isEqualTo(ErrorCode.POST_NOT_RECORDED));
+    }
 
-        assertThat(journal.getTotalDurationSeconds()).isEqualTo(300);
+    @Test
+    @DisplayName("postCondition 수정 시 값은 갱신되고 recordedAt은 변경되지 않는다")
+    void updateJournal_postCondition_updatesValues_keepsRecordedAt() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        java.time.LocalDateTime originalRecordedAt = journal.getPostCondition().getRecordedAt();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        PostConditionDto newDto = new PostConditionDto();
+        newDto.setJointMusclePain(1);
+        newDto.setIntensityFit(2);
+        newDto.setGoalAchieved(3);
+        newDto.setDizziness(4);
+        newDto.setMood(5);
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPostCondition(newDto);
+
+        journalService.updateJournal(1L, 1L, req);
+
+        assertThat(journal.getPostCondition().getMood()).isEqualTo(5);
+        assertThat(journal.getPostCondition().getRecordedAt()).isEqualTo(originalRecordedAt);
+    }
+
+    @Test
+    @DisplayName("post only 일지에 post 필드만 전달하면 정상 처리된다")
+    void updateJournal_postOnlyJournal_canEditPostOnly() {
+        WorkoutJournal journal = stubJournalPostOnly();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPostCondition(validPostCondition());
+
+        JournalDetailDto result = journalService.updateJournal(1L, 1L, req);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("pre only 일지에 pre 필드만 전달하면 정상 처리된다")
+    void updateJournal_preOnlyJournal_canEditPreOnly() {
+        WorkoutJournal journal = stubJournalPreOnly();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPreCondition(validPreCondition());
+
+        JournalDetailDto result = journalService.updateJournal(1L, 1L, req);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("모든 필드를 한번에 수정할 수 있다")
+    void updateJournal_allFieldsAtOnce_appliesAll() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setContent("전체 수정");
+        req.setPreCondition(new PreConditionDto(1, 1, 1, 1, 1));
+        req.setPostCondition(validPostCondition());
+        req.setPrePainRecords(List.of(new PainRecordDto("SHOULDER", "LEFT", 5)));
+        req.setPostPainRecords(List.of(new PainRecordDto("KNEE", "RIGHT", 3)));
+        req.setImageUrls(List.of("https://cdn.ttamtam.app/img.jpg"));
+
+        JournalDetailDto result = journalService.updateJournal(1L, 1L, req);
+
+        assertThat(result).isNotNull();
+        assertThat(journal.getContent()).isEqualTo("전체 수정");
+        assertThat(journal.getPreCondition().getJointMusclePain()).isEqualTo(1);
+        assertThat(journal.getPainRecords()).hasSize(2);
+        assertThat(journal.getAttachments()).hasSize(1);
     }
 
 }

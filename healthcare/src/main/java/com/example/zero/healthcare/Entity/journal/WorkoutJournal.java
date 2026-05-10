@@ -80,10 +80,10 @@ public class WorkoutJournal {
     @OrderBy("displayOrder ASC")
     private List<WorkoutExercise> exercises = new ArrayList<>();
 
-    @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
+    @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<JournalPainRecord> painRecords = new ArrayList<>();
 
-    @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
+    @OneToMany(mappedBy = "journal", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     @jakarta.persistence.OrderBy("displayOrder ASC")
     private List<JournalAttachment> attachments = new ArrayList<>();
 
@@ -130,5 +130,29 @@ public class WorkoutJournal {
     public void addAttachment(JournalAttachment attachment) {
         attachments.add(attachment);
         attachment.setJournal(this);
+    }
+
+    public void replacePainRecords(PainTiming timing, List<JournalPainRecord> next) {
+        painRecords.removeIf(r -> r.getTiming() == timing);
+        for (JournalPainRecord record : next) {
+            record.setJournal(this);
+            painRecords.add(record);
+        }
+    }
+
+    public void replaceAttachments(List<String> urls) {
+        attachments.clear();
+        for (int i = 0; i < urls.size(); i++) {
+            JournalAttachment attachment = JournalAttachment.builder()
+                    .imageUrl(urls.get(i))
+                    .displayOrder(i)
+                    .build();
+            attachment.setJournal(this);
+            attachments.add(attachment);
+        }
+    }
+
+    public void touch() {
+        this.updatedAt = java.time.LocalDateTime.now();
     }
 }

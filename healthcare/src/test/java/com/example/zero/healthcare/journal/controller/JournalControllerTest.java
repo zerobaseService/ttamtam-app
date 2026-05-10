@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -769,6 +770,234 @@ class JournalControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, bearerToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("JOURNAL_NOT_FOUND"));
+    }
+
+    // ─── PATCH /{id} 일지 수정 ──────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("PATCH /{id} — JWT 없이 요청하면 401을 반환한다")
+    void updateJournal_withoutJwt_returns401() throws Exception {
+        mockMvc.perform(patch("/api/journals/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — content만 수정 시 200과 최신 JournalDetailDto를 반환한다")
+    void updateJournal_contentOnly_returns200() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        String patchBody = """
+                { "content": "수정된 메모" }""";
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content").value("수정된 메모"));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — active 폴더 멤버가 다른 사람의 일지를 수정할 수 있다")
+    void updateJournal_byActiveFolderMember_returns200() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("shared folder"));
+        User owner = userRepository.findById(userId).orElseThrow();
+        memberRepository.save(DiaryFolderMember.join(folder, owner));
+
+        String createBody = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "folderId": %d,
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  }
+                }""".formatted(folder.getId());
+
+        String createResponse = mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String journalId = com.jayway.jsonpath.JsonPath.read(createResponse, "$.data.journalId").toString();
+
+        User memberUser = userRepository.save(new User("member-" + UUID.randomUUID() + "@test.com", "token", "member"));
+        memberRepository.save(DiaryFolderMember.join(folder, memberUser));
+        String memberToken = "Bearer " + jwtTokenProvider.generateToken(memberUser.getId());
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\": \"멤버 수정\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — 비멤버 다른 유저는 403을 반환한다")
+    void updateJournal_byNonMember_returns403() throws Exception {
+        String journalId = createJournalAndGetId();
+        User other = userRepository.save(new User("other-" + UUID.randomUUID() + "@test.com", "token", "other"));
+        String otherToken = "Bearer " + jwtTokenProvider.generateToken(other.getId());
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, otherToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\": \"침범\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("JOURNAL_FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — inactive(탈퇴한) 폴더 멤버는 403을 반환한다")
+    void updateJournal_byInactiveMember_returns403() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("shared folder"));
+        User owner = userRepository.findById(userId).orElseThrow();
+        memberRepository.save(DiaryFolderMember.join(folder, owner));
+
+        String createBody = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "folderId": %d,
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  }
+                }""".formatted(folder.getId());
+
+        String createResponse = mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String journalId = com.jayway.jsonpath.JsonPath.read(createResponse, "$.data.journalId").toString();
+
+        User memberUser = userRepository.save(new User("ex-" + UUID.randomUUID() + "@test.com", "token", "ex"));
+        DiaryFolderMember member = memberRepository.save(DiaryFolderMember.join(folder, memberUser));
+        member.leave();
+        String memberToken = "Bearer " + jwtTokenProvider.generateToken(memberUser.getId());
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\": \"탈퇴 멤버 수정\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("JOURNAL_FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — 존재하지 않는 id이면 404를 반환한다")
+    void updateJournal_unknownId_returns404() throws Exception {
+        mockMvc.perform(patch("/api/journals/999999999")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\": \"없는 일지\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("JOURNAL_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — imageUrls 6개 전송 시 400을 반환한다")
+    void updateJournal_imageUrlsOver5_returns400() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        String patchBody = """
+                {
+                  "imageUrls": [
+                    "https://cdn.ttamtam.app/a.jpg", "https://cdn.ttamtam.app/b.jpg",
+                    "https://cdn.ttamtam.app/c.jpg", "https://cdn.ttamtam.app/d.jpg",
+                    "https://cdn.ttamtam.app/e.jpg", "https://cdn.ttamtam.app/f.jpg"
+                  ]
+                }""";
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — painLevel이 10 초과이면 400을 반환한다")
+    void updateJournal_painLevelOutOfRange_returns400() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        String patchBody = """
+                {
+                  "prePainRecords": [{"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 11}]
+                }""";
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — pre 데이터 없는 일지에 preCondition 전송 시 409 PRE_NOT_RECORDED를 반환한다")
+    void updateJournal_preConditionOnJournalWithoutPre_returns409() throws Exception {
+        String completeBody = """
+                {
+                  "workoutDate": "2020-06-01",
+                  "startedAt": "2020-06-01T09:00:00",
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  }
+                }""";
+        String createResponse = mockMvc.perform(post("/api/journals/complete")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(completeBody))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String journalId = com.jayway.jsonpath.JsonPath.read(createResponse, "$.data.journalId").toString();
+
+        String patchBody = """
+                {
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  }
+                }""";
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchBody))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PRE_NOT_RECORDED"));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — post 데이터 없는 일지에 postCondition 전송 시 409 POST_NOT_RECORDED를 반환한다")
+    void updateJournal_postConditionOnJournalWithoutPost_returns409() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        String patchBody = """
+                {
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  }
+                }""";
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchBody))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("POST_NOT_RECORDED"));
     }
 
     @Test

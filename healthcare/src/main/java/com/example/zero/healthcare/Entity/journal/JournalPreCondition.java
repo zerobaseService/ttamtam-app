@@ -53,6 +53,14 @@ public class JournalPreCondition {
         return pre;
     }
 
+    public void update(PreConditionDto dto) {
+        this.jointMusclePain = dto.getJointMusclePain();
+        this.sleepHours = dto.getSleepHours();
+        this.sleepQuality = dto.getSleepQuality();
+        this.previousFatigue = dto.getPreviousFatigue();
+        this.overallCondition = dto.getOverallCondition();
+    }
+
     void setJournal(WorkoutJournal journal) {
         this.journal = journal;
     }
