@@ -120,8 +120,8 @@ class JournalRepositoryTest {
     }
 
     @Test
-    @DisplayName("delete() 이후 journal_pain_record 행은 물리 삭제되지 않고 남는다")
-    void delete_painRecordsNotPhysicallyDeleted() {
+    @DisplayName("delete() 이후 orphanRemoval로 journal_pain_record 행이 물리 삭제된다")
+    void delete_painRecordsPhysicallyDeletedByOrphanRemoval() {
         User user = saveUser();
         WorkoutJournal journal = buildJournal(user.getId());
         journal.addPainRecord(JournalPainRecord.builder()
@@ -141,7 +141,7 @@ class JournalRepositoryTest {
                 .setParameter("jid", saved.getId())
                 .getSingleResult();
 
-        assertThat(count).isEqualTo(1L);
+        assertThat(count).isEqualTo(0L);
     }
 
     @Test

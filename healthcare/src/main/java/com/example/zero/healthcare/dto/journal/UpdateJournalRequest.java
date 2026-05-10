@@ -1,8 +1,6 @@
 package com.example.zero.healthcare.dto.journal;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,20 +12,24 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UpdateJournalPostRequest {
-
-    @NotNull @Valid
-    private PostConditionDto postCondition;
-
-    @PositiveOrZero
-    private Integer totalDurationSeconds;
+public class UpdateJournalRequest {
 
     @Valid
-    private List<PainRecordDto> painRecords;
+    private PreConditionDto preCondition;
+
+    @Valid
+    private PostConditionDto postCondition;
+
+    @Valid
+    private List<PainRecordDto> prePainRecords;
+
+    @Valid
+    private List<PainRecordDto> postPainRecords;
 
     @Size(max = 5000)
     private String content;
 
-    @Size(max = 5, message = "이미지는 최대 5개까지 첨부 가능합니다.")
+    @Valid
+    @Size(max = 5)
     private List<@URL @Size(max = 1024) String> imageUrls;
 }
