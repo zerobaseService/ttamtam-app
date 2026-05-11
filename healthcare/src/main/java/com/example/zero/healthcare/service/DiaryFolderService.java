@@ -178,7 +178,7 @@ public class DiaryFolderService {
         String encodedToken = URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
         String encodedName = URLEncoder.encode(folder.getName(), StandardCharsets.UTF_8);
         String inviteLink = normalizeBaseUrl(inviteWebBaseUrl)
-                + "/?token=" + encodedToken
+                + "/folders/invite?token=" + encodedToken
                 + "&folderId=" + folderId
                 + "&folderName=" + encodedName;
         return new InviteLinkResponse(inviteLink);
