@@ -197,6 +197,12 @@ public class JournalService {
         }
 
         return journals.stream()
+                .filter(j -> {
+                    if (j.getFolderId() == null) return true;
+                    return folderRepository.findById(j.getFolderId())
+                            .map(DiaryFolder::isActive)
+                            .orElse(false);
+                })
                 .map(JournalSummaryDto::new)
                 .collect(Collectors.toList());
     }
@@ -308,21 +314,20 @@ public class JournalService {
     }
 
     private void verifyJournalAccess(WorkoutJournal journal, Long userId) {
-        if (journal.getAuthorId().equals(userId)) {
-            return;
-        }
         if (journal.getFolderId() != null) {
             DiaryFolder folder = folderRepository.findById(journal.getFolderId())
                     .orElseThrow(() -> new CoreException(ErrorCode.JOURNAL_FORBIDDEN));
+            if (!folder.isActive()) throw new CoreException(ErrorCode.FOLDER_CLOSED);
+            if (journal.getAuthorId().equals(userId)) return;
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new CoreException(ErrorCode.JOURNAL_FORBIDDEN));
             boolean isActiveMember = memberRepository.findByFolderAndUser(folder, user)
                     .map(DiaryFolderMember::isActive)
                     .orElse(false);
-            if (isActiveMember) {
-                return;
-            }
+            if (isActiveMember) return;
+            throw new CoreException(ErrorCode.JOURNAL_FORBIDDEN);
         }
+        if (journal.getAuthorId().equals(userId)) return;
         throw new CoreException(ErrorCode.JOURNAL_FORBIDDEN);
     }
 }

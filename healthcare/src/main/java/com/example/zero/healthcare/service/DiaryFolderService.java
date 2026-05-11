@@ -178,7 +178,7 @@ public class DiaryFolderService {
         String encodedToken = URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
         String encodedName = URLEncoder.encode(folder.getName(), StandardCharsets.UTF_8);
         String inviteLink = normalizeBaseUrl(inviteWebBaseUrl)
-                + "/?token=" + encodedToken
+                + "/folders/invite?token=" + encodedToken
                 + "&folderId=" + folderId
                 + "&folderName=" + encodedName;
         return new InviteLinkResponse(inviteLink);
@@ -187,7 +187,7 @@ public class DiaryFolderService {
     @Transactional
     public FolderResponse acceptInvite(Long userId, InviteAcceptRequest request) {
         String tokenHash = sha256(request.getToken());
-        Invite invite = inviteRepository.findByTokenHashAndActiveTrue(tokenHash)
+        Invite invite = inviteRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new CoreException(ErrorCode.INVALID_TOKEN));
         DiaryFolder folder = invite.getFolder();
         if (!folder.isActive()) throw new CoreException(ErrorCode.FOLDER_CLOSED);
@@ -208,7 +208,6 @@ public class DiaryFolderService {
             memberRepository.save(DiaryFolderMember.join(folder, user));
         }
 
-        invite.deactivate();
         List<DiaryFolderMember> activeMembers = memberRepository.findActiveMembers(folder);
         return new FolderResponse(folder, activeMembers);
     }

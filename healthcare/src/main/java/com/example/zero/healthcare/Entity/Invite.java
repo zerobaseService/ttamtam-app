@@ -31,9 +31,6 @@ public class Invite {
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 
-    @Column(nullable = false)
-    private boolean active = true;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -41,12 +38,7 @@ public class Invite {
         Invite invite = new Invite();
         invite.folder = folder;
         invite.tokenHash = tokenHash;
-        invite.active = true;
         invite.createdAt = LocalDateTime.now();
         return invite;
-    }
-
-    public void deactivate() {
-        this.active = false;
     }
 }
