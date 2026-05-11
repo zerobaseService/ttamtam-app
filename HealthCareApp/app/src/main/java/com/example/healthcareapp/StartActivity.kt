@@ -15,7 +15,7 @@ class StartActivity : AppCompatActivity() {
         val StartButton = findViewById<Button>(R.id.start_button)
 
         StartButton.setOnClickListener{
-            intent = Intent(this,WorkoutExerciseActivity::class.java)
+            intent = Intent(this,MainActivity::class.java)
             startActivity(intent)
 
         }

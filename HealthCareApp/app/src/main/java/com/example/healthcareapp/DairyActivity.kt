@@ -52,7 +52,7 @@ class DiaryActivity : AppCompatActivity() {
         btnPrevWeek = findViewById(R.id.btn_prev_week)
         btnNextWeek = findViewById(R.id.btn_next_week)
         exersizeStart = findViewById(R.id.exercise_start)
-        conditionButton = findViewById(R.id.btn_condition_check_button)
+        conditionButton = findViewById(R.id.condition_check)
     }
 
     // 캘린더 초기 세팅 함수
@@ -107,7 +107,7 @@ class DiaryActivity : AppCompatActivity() {
 
         exersizeStart.setOnClickListener {
 
-            val intent = Intent(this, WorkoutExerciseActivity::class.java).apply {
+            val intent = Intent(this, DiaryListActivity::class.java).apply {
                 putExtra("FOLDER_ID", folderId)      // 폴더 ID 전달
                 putExtra("FOLDER_NAME", folderName)  // 폴더 이름 전달
             }

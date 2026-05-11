@@ -21,12 +21,12 @@ class WorkoutAdapter(private val items: MutableList<ExerciseRecord>) : // 1. Mut
     class WorkoutViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvTitle: TextView = view.findViewById(R.id.tv_exercise_title)
         val rvSets: RecyclerView = view.findViewById(R.id.rv_sets)
-        val btnDeleteSet: View = view.findViewById(R.id.btn_delete_set)
-        val btnAddSet: View = view.findViewById(R.id.btn_add_set)
+//        val btnDeleteSet: View = view.findViewById(R.id.btn_delete_set)
+//        val btnAddSet: View = view.findViewById(R.id.btn_add_set)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WorkoutViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_workout_card, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_record_workoutcard, parent, false)
         return WorkoutViewHolder(view)
     }
 
@@ -48,20 +48,20 @@ class WorkoutAdapter(private val items: MutableList<ExerciseRecord>) : // 1. Mut
         }
 
 
-        holder.btnAddSet.setOnClickListener {
-            android.util.Log.d("DEBUG_WORKOUT", "추가 버튼 눌림!")
-            val nextSetNum = exercise.sets.size + 1
-            exercise.sets.add(ExerciseSet(nextSetNum, 0, 0))
-            setAdapter.notifyDataSetChanged()
-        }
-
-        holder.btnDeleteSet.setOnClickListener {
-            android.util.Log.d("DEBUG_WORKOUT", "삭제 버튼 눌림!")
-            if (exercise.sets.isNotEmpty()) {
-                exercise.sets.removeAt(exercise.sets.size - 1)
-                setAdapter.notifyDataSetChanged()
-            }
-        }
+//        holder.btnAddSet.setOnClickListener {
+//            android.util.Log.d("DEBUG_WORKOUT", "추가 버튼 눌림!")
+//            val nextSetNum = exercise.sets.size + 1
+//            exercise.sets.add(ExerciseSet(nextSetNum, 0, 0))
+//            setAdapter.notifyDataSetChanged()
+//        }
+//
+//        holder.btnDeleteSet.setOnClickListener {
+//            android.util.Log.d("DEBUG_WORKOUT", "삭제 버튼 눌림!")
+//            if (exercise.sets.isNotEmpty()) {
+//                exercise.sets.removeAt(exercise.sets.size - 1)
+//                setAdapter.notifyDataSetChanged()
+//            }
+//        }
     }
 
     override fun getItemCount() = items.size
@@ -72,8 +72,8 @@ class SetAdapter(private val sets: MutableList<ExerciseSet>) :
 
     class SetViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvSetNum: TextView = view.findViewById(R.id.tv_set_number)
-        val etWeight: EditText = view.findViewById(R.id.et_weight)
-        val etReps: EditText = view.findViewById(R.id.et_reps)
+        val etWeight: EditText = view.findViewById(R.id.etWeight)
+        val etReps: EditText = view.findViewById(R.id.etReps)
 
 
         var weightWatcher: TextWatcher? = null
@@ -93,7 +93,7 @@ class SetAdapter(private val sets: MutableList<ExerciseSet>) :
         holder.etReps.removeTextChangedListener(holder.repsWatcher)
 
 
-        holder.tvSetNum.text = "${set.setNumber} 세트"
+        holder.tvSetNum.text = "${set.setNumber} "
         // 0일 때는 빈칸으로 보여주어 사용자가 바로 입력하기 편하게 함
         holder.etWeight.setText(if (set.weight == 0) "" else set.weight.toString())
         holder.etReps.setText(if (set.reps == 0) "" else set.reps.toString())

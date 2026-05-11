@@ -258,49 +258,55 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
 
         override fun onBindViewHolder(holder: QViewHolder, position: Int) {
             val q = qList[position]
-            val actualIndex = position + 1
+            // qList는 1번(통증)을 drop하고 들어오므로 index를 2~5번에 맞춥니다.
+            val actualQuestionNum = position + 2
 
             holder.binding.apply {
-                tvStepCount.text = "${actualIndex + 1}/5"
-                tvQuestionTitle.text = when(actualIndex) {
-                    1 -> "오늘 수면 시간이 어떻게 되시나요?"
-                    2 -> "수면의 질은 어떠셨나요?"
-                    3 -> "전 날 운동의 피로가 남아있나요?"
-                    4 -> "현재 몸과 마음의 컨디션은 어떤가요?"
-                    else -> q.title
-                }
+                tvStepCount.text = "$actualQuestionNum/5"
 
-                when(actualIndex) {
-                    1, 2 -> {
-                        tvMinLabel.text = "매우 부족/낮음"
-                        tvMaxLabel.text = "매우 충분/좋음"
+                // 질문 제목과 Min/Max 라벨 설정
+                when(actualQuestionNum) {
+                    2 -> {
+                        tvQuestionTitle.text = "오늘 수면 시간이 어떻게 되시나요?"
+                        tvMinLabel.text = "1시간"
+                        tvMaxLabel.text = "10시간"
                     }
                     3 -> {
-                        tvMinLabel.text = "매우 많이 남음"
-                        tvMaxLabel.text = "전혀 없음"
+                        tvQuestionTitle.text = "수면의 질은 어떠셨나요?"
+                        tvMinLabel.text = "거의 못 잠"
+                        tvMaxLabel.text = "매우 개운함"
                     }
                     4 -> {
+                        tvQuestionTitle.text = "전 날 운동의 피로가 남아있나요?"
+                        tvMinLabel.text = "매우 많이 남아있음"
+                        tvMaxLabel.text = "전혀 없음"
+                    }
+                    5 -> {
+                        tvQuestionTitle.text = "현재 몸과 마음의 컨디션은 어떤가요?"
                         tvMinLabel.text = "매우 안 좋음"
-                        tvMaxLabel.text = "최상의 컨디션"
+                        tvMaxLabel.text = "최상"
                     }
                     else -> {
-                        tvMinLabel.text = "매우 심함"
-                        tvMaxLabel.text = "통증 없음"
+                        tvQuestionTitle.text = q.title
+                        tvMinLabel.text = "매우 안 좋음"
+                        tvMaxLabel.text = "최상"
                     }
                 }
 
                 slider.valueFrom = 1f
                 slider.valueTo = 10f
                 slider.stepSize = 1f
-                // 초기값 설정: 4, 5번 질문은 긍정적인 쪽(높은 점수)으로 기본값 세팅
-                slider.value = if (q.score < 1f) (if (actualIndex >= 3) 7f else 10f) else q.score
 
-                updateSliderGuideByQuestion(tvSliderGuide, actualIndex, slider.value.toInt())
+                // 초기값 설정: 4, 5번 질문은 긍정적인 쪽(높은 점수)으로 기본값 세팅
+                slider.value = if (q.score < 1f) (if (actualQuestionNum >= 4) 7f else 10f) else q.score
+
+                // 가이드 텍스트 업데이트 (실제 인덱스 1~4 대응)
+                updateSliderGuideByQuestion(tvSliderGuide, actualQuestionNum - 1, slider.value.toInt())
 
                 slider.clearOnChangeListeners()
                 slider.addOnChangeListener { _, value, _ ->
                     q.score = value
-                    updateSliderGuideByQuestion(tvSliderGuide, actualIndex, value.toInt())
+                    updateSliderGuideByQuestion(tvSliderGuide, actualQuestionNum - 1, value.toInt())
                 }
             }
         }
