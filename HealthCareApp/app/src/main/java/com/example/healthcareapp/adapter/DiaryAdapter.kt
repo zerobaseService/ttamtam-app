@@ -35,13 +35,11 @@ class DiaryAdapter(
             tvMainText.text = item.date
             tvSubText.text = item.title
 
-            // ⭐ 에러 해결: IntArray에서 직접 색상 값을 꺼내와서 적용합니다.
-            // position % stripeColors.size 로직으로 10개 색상이 순환됩니다.
+
             val targetColor = stripeColors[position % stripeColors.size]
             viewStripe.setBackgroundColor(targetColor)
 
-            // 이미지 가이드에 맞춰 우측 아이콘 설정 (운동 유무 등을 고려)
-            // 임시로 이모티콘 3번과 5번을 번갈아 보여주게 설정했습니다.
+
             if (position % 2 == 0) {
                 btnDot.setImageResource(R.drawable.emoticon3)
             } else {

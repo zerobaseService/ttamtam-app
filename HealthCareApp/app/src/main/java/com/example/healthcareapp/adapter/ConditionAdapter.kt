@@ -13,10 +13,12 @@ import com.example.healthcareapp.data.StatusQuestion1
 import com.example.healthcareapp.databinding.ItemCondition1Binding
 import com.example.healthcareapp.databinding.ItemConditionQuestionBinding
 import com.example.healthcareapp.databinding.ItemBodyPartSelectionBinding
-
+/**
+ * [메인 어댑터] 운동 전후 컨디션 및 통증 부위를 기록하는 카드 리스트를 관리합니다.
+ */
 class ConditionAdapter(private val items: List<ConditionRecord>) :
     RecyclerView.Adapter<ConditionAdapter.ViewHolder>() {
-
+    // 칩 아이디와 신체 부위 텍스트 매핑 (필터링 기준)
     private val chipIdToKey = mapOf(
         R.id.chip_head to "머리/목",
         R.id.chip_upper to "상체",
@@ -24,7 +26,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         R.id.chip_lower to "하체",
         R.id.chip_foot to "발"
     )
-
+    // 신체 방향(앞/뒤) 및 부위에 따른 세부 명칭 데이터 리스트
     private val bodyDataMap = mapOf(
         "앞면" to mapOf(
             "머리/목" to listOf("머리", "이마", "얼굴", "목"),
@@ -42,7 +44,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         )
     )
 
-    private var currentDirection = "앞면"
+    private var currentDirection = "앞면"// 현재 앞면/뒷면 선택 상태
 
     inner class ViewHolder(val binding: ItemCondition1Binding) : RecyclerView.ViewHolder(binding.root)
 
@@ -65,7 +67,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
             notifyItemChanged(position)
         }
 
-        // --- [2] 1번 질문 (통증) ---
+        // 1번 통증수위 처리
         if (item.questions.isNotEmpty()) {
             val firstQ = item.questions[0]
             binding.layoutFirstQuestion.apply {
@@ -77,13 +79,15 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
                 slider.valueFrom = 1f
                 slider.valueTo = 10f
                 slider.stepSize = 1f
+                // 슬라이더 초기화 및 값 설정
                 slider.value = if (firstQ.score < 1f) 10f else firstQ.score
-
+                // 슬라이더 하단 가이드 텍스트 초기 업데이트
                 updateSliderGuideByQuestion(tvSliderGuide, 0, slider.value.toInt())
 
                 slider.clearOnChangeListeners()
                 slider.addOnChangeListener { _, value, _ ->
                     firstQ.score = value
+                    //사용자가 슬라이더를 움직일 때 실시간으로 가이드 텍스트 변경
                     updateSliderGuideByQuestion(tvSliderGuide, 0, value.toInt())
                 }
             }
@@ -196,7 +200,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         10 -> "최상 / 몸과 마음이 매우 가볍고 개운함"
         else -> ""
     }
-
+    // 앞면/뒷면 전환 버튼 리스너
     private fun setupBodySelection(binding: ItemCondition1Binding) {
         binding.btnFront.setOnClickListener {
             currentDirection = "앞면"
@@ -219,13 +223,13 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         val context = binding.root.context
         val activeColor = ContextCompat.getColor(context, R.color.front_black)
         val inactiveColor = ContextCompat.getColor(context, R.color.back_gray)
-
         if (currentDirection == "앞면") {
             binding.btnFront.setBackgroundResource(R.drawable.bg_tab_selected)
             binding.btnFront.setTextColor(activeColor)
             binding.btnBack.setBackgroundResource(android.R.color.transparent)
             binding.btnBack.setTextColor(inactiveColor)
         } else {
+
             binding.btnBack.setBackgroundResource(R.drawable.bg_tab_selected)
             binding.btnBack.setTextColor(activeColor)
             binding.btnFront.setBackgroundResource(android.R.color.transparent)
@@ -258,7 +262,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
 
         override fun onBindViewHolder(holder: QViewHolder, position: Int) {
             val q = qList[position]
-            // qList는 1번(통증)을 drop하고 들어오므로 index를 2~5번에 맞춥니다.
+            // qList는 1번(통증)을 drop하고 들어오므로 index를 2~5번에 맞춤.
             val actualQuestionNum = position + 2
 
             holder.binding.apply {
@@ -306,13 +310,16 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
                 slider.clearOnChangeListeners()
                 slider.addOnChangeListener { _, value, _ ->
                     q.score = value
+                    //부모 클래스인 ConditionAdapter의 updateSliderGuideByQuestion 호출
                     updateSliderGuideByQuestion(tvSliderGuide, actualQuestionNum - 1, value.toInt())
                 }
             }
         }
         override fun getItemCount(): Int = qList.size
     }
-
+    /**
+     * [최하위 어댑터] 선택된 부위의 세부 명칭을 보여주는 리스트.
+     */
     private class BodyPartDetailAdapter(private val parts: List<String>) :
         RecyclerView.Adapter<BodyPartDetailAdapter.BodyViewHolder>() {
         inner class BodyViewHolder(val binding: ItemBodyPartSelectionBinding) : RecyclerView.ViewHolder(binding.root)
