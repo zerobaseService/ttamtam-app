@@ -187,11 +187,11 @@ class DiaryListActivity : AppCompatActivity() {
      */
     private fun setupDiaryList() {
         displayList.clear()
-        // TODO: 실제로는 서버에서 해당 폴더/날짜의 데이터를 받아와야 함
-        displayList.add(DiaryItem("26.04.10 qwer123", "개인운동"))
-        displayList.add(DiaryItem("26.04.09 asdf456", "PT"))
-        displayList.add(DiaryItem("26.04.08 qwer123", "개인운동"))
-        displayList.add(DiaryItem("26.04.07 asdf456", "PT"))
+//        // TODO: 실제로는 서버에서 해당 폴더/날짜의 데이터를 받아와야 함
+//        displayList.add(DiaryItem("26.04.10 qwer123", "개인운동"))
+//        displayList.add(DiaryItem("26.04.09 asdf456", "PT"))
+//        displayList.add(DiaryItem("26.04.08 qwer123", "개인운동"))
+//        displayList.add(DiaryItem("26.04.07 asdf456", "PT"))
 
         rvDiaryList.layoutManager = LinearLayoutManager(this)
         diaryAdapter = DiaryAdapter(displayList, { item ->

@@ -37,7 +37,7 @@
                 android:text="개인 운동"
                 android:textColor="@drawable/selector_tab"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+               />
 
             <TextView
                 android:id="@+id/tv_tab_pt"
@@ -50,7 +50,7 @@
                 android:text="PT"
                 android:textColor="@drawable/selector_tab"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                 />
         </LinearLayout>
 
         <TextView

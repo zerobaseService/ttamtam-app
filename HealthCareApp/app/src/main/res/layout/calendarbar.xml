@@ -38,8 +38,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="홍길동"
-            android:textColor="#1E293B"
-            android:textSize="17sp"
+            android:textColor="#000000"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -195,11 +195,9 @@
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/shape_btn_gray"
                 android:text="컨디션 체크"
-                android:textAllCaps="false"
-                android:textColor="#475569"
+                android:textColor="#2E3D4F"
                 android:textSize="15sp"
-                android:textStyle="bold" />
-
+                />
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/exercise_start"
                 android:layout_width="0dp"
@@ -208,10 +206,9 @@
                 android:layout_marginStart="6dp"
                 android:background="@drawable/shape_btn_dark"
                 android:text="운동 시작"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
+               android:textColor="#FFFFFF"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                 />
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
