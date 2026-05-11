@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,11 @@ plugins {
     id("com.google.gms.google-services")
     id("kotlin-parcelize")
 
+}
+
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
 }
 
 android {
@@ -21,8 +28,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProps["RELEASE_STORE_FILE"] as? String ?: "")
+            storePassword = localProps["RELEASE_STORE_PASSWORD"] as? String ?: ""
+            keyAlias = localProps["RELEASE_KEY_ALIAS"] as? String ?: ""
+            keyPassword = localProps["RELEASE_KEY_PASSWORD"] as? String ?: ""
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
