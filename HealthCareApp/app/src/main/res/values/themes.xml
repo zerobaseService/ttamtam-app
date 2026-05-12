@@ -14,19 +14,17 @@
         <item name="android:textAllCaps">false</item>
         <item name="android:textStyle">normal</item> <!-- 일단 기본으로 설정 -->
     </style>
-    <!-- [추가] 스플래시 전용 테마 -->
-    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <!-- 스플래시 화면의 배경색 (재훈님 앱 스타일인 흰색 혹은 브랜드 컬러) -->
-        <item name="windowSplashScreenBackground">#FFFFFF</item>
 
-        <!-- 중앙에 표시될 아이콘 (초록색 로봇 대신 띄울 이미지) -->
+    <!-- 스플래시 전용 테마 -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- 배경색: 재훈님 앱의 메인 배경색 (#EFF3FB) -->
+        <item name="windowSplashScreenBackground">#EFF3FB</item>
+
+        <!-- 중앙 로고: 재훈님이 만든 로고 파일명 -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/ttam</item>
 
-        <!-- 스플래시 화면이 끝난 후 보여줄 실제 앱 테마 -->
+        <!-- 스플래시 종료 후 보여줄 실제 앱 테마 -->
         <item name="postSplashScreenTheme">@style/Theme.HealthCareApp</item>
-
-        <!-- 스플래시 화면이 유지되는 시간 (선택 사항) -->
-        <item name="windowSplashScreenAnimationDuration">1000</item>
     </style>
 
     <!-- 선택된 스타일: 크기는 그대로, 굵기만 변경 가능 -->
@@ -81,6 +79,15 @@
     </style>
 
     <style name="TransparentBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+    <style name="CustomBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
+    <style name="CustomBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
         <item name="android:background">@android:color/transparent</item>
     </style>
 

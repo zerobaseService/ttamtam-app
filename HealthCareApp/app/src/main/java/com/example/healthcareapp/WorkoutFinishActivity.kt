@@ -1,17 +1,23 @@
 package com.example.healthcareapp
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.healthcareapp.adapter.BodyPart
 import com.example.healthcareapp.adapter.StatusQuestionAdapter
-import com.example.healthcareapp.adapter.BodyPartAdapter // 통증 부위용 어댑터
-
+import com.example.healthcareapp.adapter.BodyPartAdapter
 import com.example.healthcareapp.data.StatusQuestion
 import com.example.healthcareapp.databinding.StatusQuestionBinding
+import com.example.healthcareapp.sheet.PainBottomSheetFragment
 import java.util.*
 
+/**
+ * 운동 종료 후 요약 정보 표시 및 컨디션/통증 기록 화면
+ */
 class WorkoutFinishActivity : AppCompatActivity() {
 
     private lateinit var binding: StatusQuestionBinding
@@ -20,7 +26,14 @@ class WorkoutFinishActivity : AppCompatActivity() {
 
     private lateinit var questionList: List<StatusQuestion>
 
-    // 통증 부위 데이터 맵 정의
+    private var receivedWorkoutType: String = "개인운동"
+
+    // ⭐ [추가] 이모티콘 리스트 정의
+    private val emojiList = listOf(
+        R.drawable.emoticon1, R.drawable.emoticon2, R.drawable.emoticon3,
+        R.drawable.emoticon4, R.drawable.emoticon5
+    )
+
     private val bodyPartMap = mapOf(
         "FRONT_머리/목" to listOf("머리", "이마", "얼굴", "목"),
         "FRONT_상체" to listOf("어깨", "가슴", "윗배", "아랫배", "옆구리"),
@@ -35,51 +48,52 @@ class WorkoutFinishActivity : AppCompatActivity() {
         "BACK_발" to listOf("아킬레스건", "발바닥")
     )
 
-    private var currentDirection = "FRONT" // 현재 선택된 방향 (FRONT / BACK)
-    private var currentCategory = "머리/목" // 현재 선택된 카테고리
+    private var currentDirection = "FRONT"
+    private var currentCategory = "머리/목"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = StatusQuestionBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        receivedWorkoutType = intent.getStringExtra("WORKOUT_TYPE") ?: "개인운동"
+        android.util.Log.d("JaehoonTest", "WorkoutFinishActivity onCreate - 받은 타입: $receivedWorkoutType")
+
+        setupTimeInfo()
+        setupStatusQuestions()
+        setupBodyParts()
+        initClickListeners()
+    }
+
+    private fun initClickListeners() {
+        binding.layoutPainTagContainer.setOnClickListener {
+            val bottomSheet = PainBottomSheetFragment { selectedPainInfo ->
+                binding.tvPainTagContent.text = selectedPainInfo
+                binding.tvPainTagContent.setTextColor(Color.parseColor("#3A8DFF"))
+            }
+            bottomSheet.show(supportFragmentManager, "PainBottomSheet")
+        }
+
         binding.btnFinishWorkout.setOnClickListener {
-            // 메모 텍스트 가져오기
+            binding.btnFinishWorkout.isEnabled = false
             val memo = binding.etFeedbackMemo.text.toString()
 
-            // 선택된 통증 부위 정보 (선택된 데이터가 있다면)
-            // val selectedBodyParts = bodyPartAdapter.getSelectedItems()
+            // ⭐ [핵심] 랜덤 대신 순차적으로 선택
+            // 현재 시간을 기준으로 하거나, 일지 개수를 알 수 없다면
+            // 간단하게 현재 초(second)를 활용해 순서를 정할 수도 있습니다.
+            val index = (System.currentTimeMillis() / 1000 % emojiList.size).toInt()
+            val selectedEmojiResId = emojiList[index]
 
-            // 상태 질문 점수들
-            val scores = questionList.map { it.score }
+            android.util.Log.d("JaehoonTest", "순차적 색상 결정 index: $index, ID: $selectedEmojiResId")
 
-            android.util.Log.d("WorkoutResult", "메모: $memo")
-            android.util.Log.d("WorkoutResult", "점수들: $scores")
-
-            // TODO: 서버 저장 또는 DB 저장 로직 수행 후 종료
+            val resultIntent = Intent().apply {
+                putExtra("WORKOUT_MEMO", memo)
+                putExtra("WORKOUT_TYPE", receivedWorkoutType)
+                putExtra("EMOJI_RES_ID", selectedEmojiResId)
+            }
+            setResult(Activity.RESULT_OK, resultIntent)
             finish()
         }
-
-// 사진 추가 버튼 클릭 시 (갤러리/카메라 호출 로직은 추후 구현 가능)
-        binding.btnAddPhoto.setOnClickListener {
-            // 갤러리 열기 코드 등
-        }
-        // 상단 시간 데이터 반영
-        setupTimeInfo()
-
-        // 상태 질문 리스트 초기화 및 설정
-        setupStatusQuestions()
-
-        // 통증 부위 설정 (어댑터 및 탭 로직)
-        setupBodyParts()
-
-        // 완료 버튼 클릭 시
-//        binding.btnFinishWorkout.setOnClickListener {
-//            val memo = binding.etFeedbackMemo.text.toString()
-//            val scores = questionList.map { it.score }
-//            android.util.Log.d("WorkoutResult", "최종 점수들: $scores, 메모: $memo")
-//            finish()
-//        }
     }
 
     private fun setupTimeInfo() {
@@ -110,7 +124,7 @@ class WorkoutFinishActivity : AppCompatActivity() {
                 )),
 
             // 2번 질문: 운동 강도 적절성
-            StatusQuestion(2, "오늘 운동 강도는 내 몸 상태에\n적절했나요?", "부족/무리", "딱 맞음", 8,
+            StatusQuestion(2, "오늘 운동 강도는 내 몸 상태에\n적절했나요?", "너무 약하거나 무리", "딱 맞았음", 8,
                 mapOf(
                     1 to "1 - 너무 약하거나 무리 / 호흡, 근육, 자세 등이 안 맞음",
                     2 to "2 - 많이 안 맞음 / 너무 쉽거나 너무 버거움",
@@ -140,7 +154,7 @@ class WorkoutFinishActivity : AppCompatActivity() {
                 )),
 
             // 4번 질문: 전반적인 기분 상태
-            StatusQuestion(4, "운동 후 전반적인 기분 상태는\n어떤가요?", "매우 안 좋음", "최상", 7,
+            StatusQuestion(4, "운동 후 전반적인 기분 상태는\n어떤가요?", "매우 안 좋음", "최상 ", 7,
                 mapOf(
                     1 to "1 - 매우 안 좋음 / 많이 지치고 힘든 상태",
                     2 to "2 - 많이 안 좋은 상태",
@@ -155,7 +169,7 @@ class WorkoutFinishActivity : AppCompatActivity() {
                 )),
 
             // 5번 질문: 목표 달성도 (재훈님이 주신 10단계 가이드 적용)
-            StatusQuestion(5, "오늘 계획한 운동 목표를\n달성했나요?", "거의 못 함", "초과 달성", 8,
+            StatusQuestion(5, "오늘 계획한 운동 목표를\n달성했나요?", "거의 못 함", "계획보다 많이 더 함", 8,
                 mapOf(
                     1 to "1 - 거의 못 함",
                     2 to "2 - 조금만 함",
@@ -176,11 +190,12 @@ class WorkoutFinishActivity : AppCompatActivity() {
             adapter = questionAdapter
         }
     }
+
+
     private fun setupBodyParts() {
-        // 어댑터 초기화 (빈 리스트로 시작)
         bodyPartAdapter = BodyPartAdapter(mutableListOf()) { part ->
-            // 아이템 클릭 시 처리
-            android.util.Log.d("BodyPart", "선택된 부위: ${part.name}")
+            binding.tvPainTagContent.text = part.name
+            binding.tvPainTagContent.setTextColor(Color.parseColor("#3A8DFF"))
         }
 
         binding.rvBodyParts.apply {
@@ -188,7 +203,6 @@ class WorkoutFinishActivity : AppCompatActivity() {
             adapter = bodyPartAdapter
         }
 
-        // 앞면/뒷면 전환 버튼 설정
         binding.btnFront.setOnClickListener {
             currentDirection = "FRONT"
             updateDirectionTabUI(isFront = true)
@@ -201,7 +215,6 @@ class WorkoutFinishActivity : AppCompatActivity() {
             updateBodyPartList()
         }
 
-        // 카테고리 칩 선택 설정
         binding.chipGroupBody.setOnCheckedStateChangeListener { _, checkedIds ->
             val checkedId = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
             currentCategory = when (checkedId) {
@@ -215,22 +228,20 @@ class WorkoutFinishActivity : AppCompatActivity() {
             updateBodyPartList()
         }
 
-        // 초기 리스트 로드
         updateBodyPartList()
     }
 
     private fun updateDirectionTabUI(isFront: Boolean) {
-
         if (isFront) {
             binding.btnFront.setBackgroundResource(R.drawable.bg_tab_selected)
-            binding.btnFront.setTextColor(Color.parseColor("#4A5768"))
+            binding.btnFront.setTextColor(Color.parseColor("#3A8DFF"))
             binding.btnBack.setBackgroundResource(android.R.color.transparent)
-            binding.btnBack.setTextColor(Color.parseColor("#8896A8"))
+            binding.btnBack.setTextColor(Color.parseColor("#94A3B8"))
         } else {
             binding.btnBack.setBackgroundResource(R.drawable.bg_tab_selected)
-            binding.btnBack.setTextColor(Color.parseColor("#4A5768"))
+            binding.btnBack.setTextColor(Color.parseColor("#3A8DFF"))
             binding.btnFront.setBackgroundResource(android.R.color.transparent)
-            binding.btnFront.setTextColor(Color.parseColor("#8896A8"))
+            binding.btnFront.setTextColor(Color.parseColor("#94A3B8"))
         }
     }
 

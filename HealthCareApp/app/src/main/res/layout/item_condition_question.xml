@@ -60,17 +60,18 @@
             android:textSize="15sp"
             />
 
-        <com.google.android.material.slider.Slider
+        <SeekBar
             android:id="@+id/slider"
-            style="@style/CustomSliderStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:valueFrom="1.0"
-            android:valueTo="10.0"
-            android:stepSize="1.0"
-            android:value="1.0"
-            app:tickVisible="true"
-            app:labelBehavior="withinBounds" />
+            android:layout_marginTop="20dp"
+            android:max="10"
+            android:progress="1"
+            android:progressDrawable="@drawable/custom_slider_trak"
+            android:splitTrack="false"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:thumbOffset="0dp" />
 
         <RelativeLayout
             android:layout_width="match_parent"

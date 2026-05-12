@@ -21,7 +21,7 @@ class StatusAdapter(private val questions: List<String>) :
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        // 첫 번째 질문이 밖에 따로 있으므로, 리스트는 2번부터 시작하게 표시합니다.
+
         holder.tvNumber.text = "${position + 2}/5"
         holder.tvTitle.text = questions[position]
     }

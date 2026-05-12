@@ -83,14 +83,14 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_tab_selected"
-                        android:text="앞면 1"
-                        android:textColor="#3A8DFF" />
+                        android:text="앞면123"
+                        android:textColor="#000000" />
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn_back"
                         android:layout_width="0dp"
                         android:layout_height="40dp"
                         android:layout_weight="1"
-                        android:text="뒷면 0"
+                        android:text="뒷면"
                         android:textColor="#94A3B8" />
                 </LinearLayout>
 

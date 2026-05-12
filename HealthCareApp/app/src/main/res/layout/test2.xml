@@ -129,8 +129,8 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_tab_selected"
-                        android:text="앞면 1"
-                        android:textColor="#3A8DFF"
+                        android:text="앞면"
+                        android:textColor="#000000"
                         android:textAllCaps="false" />
 
                     <androidx.appcompat.widget.AppCompatButton
@@ -139,7 +139,7 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:background="@android:color/transparent"
-                        android:text="뒷면 0"
+                        android:text="뒷면"
                         android:textColor="#94A3B8"
                         android:textAllCaps="false" />
                 </LinearLayout>

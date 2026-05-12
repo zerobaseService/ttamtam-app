@@ -1,174 +1,237 @@
 package com.example.healthcareapp
 
+import WorkoutFinishDialog
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.adapter.DayAdapter
 import com.example.healthcareapp.adapter.DiaryAdapter
+import com.example.healthcareapp.data.DayItem
 import com.example.healthcareapp.data.DiaryItem
-import com.example.healthcareapp.sheet.FolderExitSheet
-import com.example.healthcareapp.sheet.FolderExitSheet2
 import com.example.healthcareapp.utils.DateUtils
-import java.util.Calendar
+import com.example.healthcareapp.utils.TimerManager
+import java.text.SimpleDateFormat
+import java.util.*
 
+/**
+ * 폴더 상세 화면: 주간 캘린더를 통해 날짜별 일지를 확인하고, 운동 시작/관리 기능을 제공
+ */
 class DiaryListActivity : AppCompatActivity() {
 
-    // 뷰 객체 변수 선언
-    private lateinit var rvCalendar: RecyclerView    // 상단 가로 날짜 리스트
-    private lateinit var rvDiaryList: RecyclerView   // 중앙 세로 일지 목록 리스트
-    private lateinit var tvFolderName: TextView      // 화면 상단 폴더 이름 (예: 운동 기록)
-    private lateinit var tvWeekTitle: TextView       // 현재 표시되는 달 (예: 4월)
-    private lateinit var btnPrevWeek: ImageView      // 저번 주 버튼
-    private lateinit var btnNextWeek: ImageView      // 다음 주 버튼
-    private lateinit var btnPlus: ImageView          // 새 일지 추가 버튼
+    // UI 컴포넌트 변수
+    private lateinit var rvCalendar: RecyclerView      // 상단 가로 캘린더
+    private lateinit var rvDiaryList: RecyclerView      // 하단 세로 일지 리스트
+    private lateinit var tvWeekTitle: TextView          // 현재 표시 중인 달 (예: 2026.05)
+    private lateinit var btnPrevWeek: ImageView         // 이전 주 이동 버튼
+    private lateinit var btnNextWeek: ImageView         // 다음 주 이동 버튼
+    private lateinit var fabStartWorkout: View          // 운동 시작 플로팅 버튼
 
-    private lateinit var dayAdapter: DayAdapter       // 날짜 전용 어댑터
-    private lateinit var diaryAdapter: DiaryAdapter   // 일지 리스트 전용 어댑터
-    private var currentCalendar = Calendar.getInstance() // 현재 날짜를 관리하는 객체
-    private val dummyDiaryList = ArrayList<DiaryItem>() // 화면에 보여줄 가짜 데이터 리스트
+    // 타이머가 작동 중일 때 나타나는 하단 바 UI
+    private lateinit var layoutFloatingTimer: View
+    private lateinit var tvFloatingTimer: TextView
+    private lateinit var btnFloatingFinish: Button
+
+    // 리사이클러뷰 어댑터
+    private lateinit var dayAdapter: DayAdapter
+    private lateinit var diaryAdapter: DiaryAdapter
+
+    // 캘린더 상태 관리 변수
+    private var currentCalendar = Calendar.getInstance() // 현재 보고 있는 기준 날짜
+    private var currentDaysList = mutableListOf<DayItem>() // 현재 화면에 표시된 7일 데이터
+
+    // ⭐ 현재 선택된 날짜 (yyyy-MM-dd): 주간 이동 시에도 선택 상태를 유지하기 위함
+    private var selectedDateStr: String = SimpleDateFormat("yyyy-MM-dd", Locale.KOREA).format(Date())
+
+    private val displayList = ArrayList<DiaryItem>() // 일지 리스트 데이터
+
+    // 운동 완료 시 랜덤으로 찍어줄 이모티콘 리스트
+    private val emojiList = listOf(
+        R.drawable.emoticon1, R.drawable.emoticon2, R.drawable.emoticon3,
+        R.drawable.emoticon4, R.drawable.emoticon5
+    )
+
+    private var isWorkoutCompletedToday = false // 오늘 운동 완료 여부 (임시 플래그)
+
+    // [운동 화면] 결과 처리 Launcher: 운동을 마치고 돌아왔을 때 처리
+    private val workoutResultLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            isWorkoutCompletedToday = true
+            markTodayWithEmoji() // 오늘 날짜에 이모티콘 표시
+            TimerManager.stopTimer() // 타이머 종료
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.folder_detial) // '폴더 상세(일지 목록)' 레이아웃 연결
+        setContentView(R.layout.folder_detial)
 
-        initViews()         // 1. 뷰 초기화
-        setupCalendar()     // 2. 상단 날짜바 설정
-        createDummyData()   // 3. 테스트용 데이터 생성
-        setupDiaryList()    // 4. 하단 일지 목록 설정
-        val folderId = intent.getLongExtra("FOLDER_ID", -1L) // DB 조회를 위해 저장해두세요
-        val folderName = intent.getStringExtra("FOLDER_NAME") ?: "Folder"
-        tvFolderName.text = folderName // 상단 바에 폴더 이름 표시
-        // Intent(화면 전환 시 넘어온 데이터)에서 폴더 이름을 가져오고 없으면 "Folder"로 표시
-
-        tvFolderName.text = folderName
-
-        initClickListeners() // 5. 클릭 이벤트
+        initViews()                 // 뷰 바인딩
+        initAdapters()              // 어댑터 초기화 및 리사이클러뷰 연결
+        setupCalendar()             // 캘린더 날짜 생성 및 세팅
+        setupDiaryList()            // 일지 데이터 세팅
+        setupFloatingTimerObserver() // 전역 타이머 상태 관찰 설정
+        initClickListeners()        // 클릭 리스너 설정
     }
 
     private fun initViews() {
         rvCalendar = findViewById(R.id.rv_calendar)
         rvDiaryList = findViewById(R.id.rv_diary_list)
-        tvFolderName = findViewById(R.id.tv_folder_name)
         tvWeekTitle = findViewById(R.id.tv_week_title)
         btnPrevWeek = findViewById(R.id.btn_prev_week)
         btnNextWeek = findViewById(R.id.btn_next_week)
-        btnPlus = findViewById(R.id.plusbutton3) // 새 일지 추가 버튼
+        fabStartWorkout = findViewById(R.id.fab_start_workout)
+
+        layoutFloatingTimer = findViewById(R.id.layout_floating_timer)
+        tvFloatingTimer = layoutFloatingTimer.findViewById(R.id.tv_bar_time)
+        btnFloatingFinish = layoutFloatingTimer.findViewById(R.id.btn_bar_finish)
     }
 
-    // 더미데이터
-    private fun createDummyData() {
-        // 우리가 아까 고친 레이아웃대로: 첫 번째는 날짜, 두 번째는 제목(운동명)
-        dummyDiaryList.add(DiaryItem("1", "26.04.27", "PT (가슴/삼두)", "재훈", null))
-        dummyDiaryList.add(DiaryItem("2", "26.04.25", "개인운동 (하체)", "재훈", null))
-    }
-
-    // 하단 일지 리스트(RecyclerView) 설정
-    private fun setupDiaryList() {
-        rvDiaryList.layoutManager = LinearLayoutManager(this)
-
-        diaryAdapter = DiaryAdapter(
-            items = dummyDiaryList, // 여기서 dummyDiaryList는 ArrayList여야 합니다.
-            onItemClick = { item ->
-                Toast.makeText(this, "${item.title} 확인", Toast.LENGTH_SHORT).show()
-            },
-            onDotClick = { position -> // 👈 몇 번째 아이템인지 순서(position)를 받습니다.
-                // 1. 리스트에서 해당 데이터 삭제
-                val exitSheet = FolderExitSheet2(
-                    folderName = tvFolderName.text.toString(),
-                    onExitConfirm = {
-                        // 2. 나가기 확정 시 실행될 로직
-                        dummyDiaryList.removeAt(position)
-                        diaryAdapter.notifyItemRemoved(position)
-                        diaryAdapter.notifyItemRangeChanged(position, dummyDiaryList.size)
-
-                        Toast.makeText(this, "폴더에서 나갔습니다.", Toast.LENGTH_SHORT).show()
-                    }
-                )
-
-                // 3. 바텀시트 띄우기
-                exitSheet.show(supportFragmentManager, "FolderExitSheet")
-            }
-        )
-        rvDiaryList.adapter = diaryAdapter
-    }
-
-    // 상단 주간 날짜바(RecyclerView) 설정 함수
-    private fun setupCalendar() {
-        // 현재 캘린더 기준으로 이번 주의 달(title)과 날짜들(days)을 가져옴
-        val (title, days) = DateUtils.getWeekInfo(currentCalendar.time)
-        tvWeekTitle.text = title
-
-        dayAdapter = DayAdapter(days) { clickedDay ->
-            // 날짜 클릭 시 동작할 로직 (현재는 비어 있음)
+    private fun initAdapters() {
+        // 날짜 클릭 시 동작 정의
+        dayAdapter = DayAdapter(emptyList()) { clickedItem ->
+            selectedDateStr = clickedItem.fullDate // 선택된 날짜 업데이트
+            // TODO: 해당 날짜의 일지만 서버에서 가져오거나 필터링하는 로직 추가
         }
 
         rvCalendar.apply {
             layoutManager = LinearLayoutManager(this@DiaryListActivity, LinearLayoutManager.HORIZONTAL, false)
             adapter = dayAdapter
-            post { dayAdapter.notifyDataSetChanged() } // 화면이 그려진 후 데이터 새로고침
+
+            // ⭐ 버그 해결: 갱신 시 깜빡임 방지 및 성능 최적화
+            itemAnimator = null
+            setHasFixedSize(true)
         }
     }
-//    private fun showExitBottomSheet(position: Int) {
-//        // 1. BottomSheetDialog 객체 생성
-//        val bottomSheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
-//
-//        // 2. 작성하신 XML 레이아웃 인플레이트
-//        val view = layoutInflater.inflate(R.layout.folder_exit_sheet, null) // 파일명이 bottom_sheet_exit라고 가정
-//        bottomSheet.setContentView(view)
-//
-//        // 3. 바텀시트 내 버튼 연결
-//        val btnClose = view.findViewById<ImageView>(R.id.btn_close_exit)
-//        val btnRealExit = view.findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btn_real_exit)
-//        val btnStay = view.findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btn_stay)
-//
-//        // X 버튼이나 머물기 버튼 클릭 시 닫기
-//        btnClose.setOnClickListener { bottomSheet.dismiss() }
-//        btnStay.setOnClickListener { bottomSheet.dismiss() }
-//
-//        // 실제 나가기 버튼 클릭 시 리스트에서 제거
-//        btnRealExit.setOnClickListener {
-//            dummyDiaryList.removeAt(position)
-//            diaryAdapter.notifyItemRemoved(position)
-//            diaryAdapter.notifyItemRangeChanged(position, dummyDiaryList.size)
-//
-//            bottomSheet.dismiss() // 동작 완료 후 닫기
-//            Toast.makeText(this, "폴더에서 나갔습니다.", Toast.LENGTH_SHORT).show()
-//        }
-//
-//        bottomSheet.show()
-//    }
 
-    // 각종 클릭 이벤트 설정 함수
+    /**
+     * 주간 캘린더 데이터를 생성하고 UI에 적용하는 함수
+     */
+    private fun setupCalendar() {
+        // 1. DateUtils를 사용해 해당 주의 [년.월] 제목과 7일간의 [DayItem] 리스트를 가져옴
+        val weekInfo = DateUtils.getWeekInfo(currentCalendar.time)
+        tvWeekTitle.text = weekInfo.first
+
+        val rawDays = weekInfo.second
+        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.KOREA).format(Date())
+
+        rawDays.forEach { day ->
+            // 2. 이전에 선택했던 날짜라면 선택 상태(isSelected)를 true로 복구
+            day.isSelected = (day.fullDate == selectedDateStr)
+
+            // 3. 오늘 날짜이고 운동을 완료했다면 이모티콘 정보 주입
+            if (day.fullDate == todayStr && isWorkoutCompletedToday) {
+                day.hasExercise = true
+                if (day.emojiResId == 0) day.emojiResId = emojiList.random()
+            }
+        }
+
+        currentDaysList = rawDays.toMutableList()
+        dayAdapter.updateData(currentDaysList) // 어댑터 갱신
+    }
+
+    /**
+     * 오늘 날짜에 운동 완료 이모티콘을 표시하고 리스트를 갱신
+     */
+    private fun markTodayWithEmoji() {
+        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.KOREA).format(Date())
+        currentDaysList.forEach { day ->
+            if (day.fullDate == todayStr) {
+                day.hasExercise = true
+                if (day.emojiResId == 0) day.emojiResId = emojiList.random()
+            }
+        }
+        dayAdapter.notifyDataSetChanged()
+    }
+
+    /**
+     * 타이머Manager의 LiveData를 관찰하여 하단 플로팅 바를 노출/숨김 처리
+     */
+    private fun setupFloatingTimerObserver() {
+        TimerManager.timeLiveData.observe(this) {
+            if (TimerManager.isTimerActive()) {
+                // 타이머가 돌아가고 있으면 플로팅 바를 보여주고 시작 버튼을 숨김
+                layoutFloatingTimer.visibility = View.VISIBLE
+                tvFloatingTimer.text = TimerManager.getFormattedTime()
+                fabStartWorkout.visibility = View.GONE
+            } else {
+                // 타이머가 종료되면 플로팅 바를 숨기고 시작 버튼을 노출
+                layoutFloatingTimer.visibility = View.GONE
+                fabStartWorkout.visibility = View.VISIBLE
+            }
+        }
+        btnFloatingFinish.setOnClickListener { showFinishDialog() }
+    }
+
+    /**
+     * 운동 종료 확인 다이얼로그 노출
+     */
+    private fun showFinishDialog() {
+        val dialog = WorkoutFinishDialog {
+            isWorkoutCompletedToday = true
+            markTodayWithEmoji()
+            TimerManager.stopTimer()
+        }
+        dialog.show(supportFragmentManager, "WorkoutFinishDialog")
+    }
+
+    /**
+     * 하단 일지 리스트 더미 데이터 세팅
+     */
+    private fun setupDiaryList() {
+        displayList.clear()
+//        // TODO: 실제로는 서버에서 해당 폴더/날짜의 데이터를 받아와야 함
+//        displayList.add(DiaryItem("26.04.10 qwer123", "개인운동"))
+//        displayList.add(DiaryItem("26.04.09 asdf456", "PT"))
+//        displayList.add(DiaryItem("26.04.08 qwer123", "개인운동"))
+//        displayList.add(DiaryItem("26.04.07 asdf456", "PT"))
+
+        rvDiaryList.layoutManager = LinearLayoutManager(this)
+        diaryAdapter = DiaryAdapter(displayList, { item ->
+            // 아이템 상세 클릭 시 처리
+        }, { position ->
+            // 점 세개(옵션) 버튼 클릭 시 처리
+        })
+        rvDiaryList.adapter = diaryAdapter
+    }
+
+    /**
+     * 버튼 클릭 이벤트 리스너 통합 설정
+     */
     private fun initClickListeners() {
-        // 뒤로가기 화살표 버튼 클릭 시 현재 액티비티 종료 (이전 화면으로 이동)
+        // 뒤로가기 버튼
         findViewById<ImageView>(R.id.arrow_btn).setOnClickListener { finish() }
 
-        // 이전 주/다음 주 이동 버튼
+        // 주간 이동 버튼 (이전 주 / 다음 주)
         btnPrevWeek.setOnClickListener { moveWeek(-1) }
         btnNextWeek.setOnClickListener { moveWeek(1) }
 
-        // 플러스(+) 버튼 클릭 시 새 일지 작성 안내
-//        btnPlus.setOnClickListener {
-//
-//        }
+        // 작동 중인 플로팅 타이머 바 클릭 시 현재 진행 중인 운동 화면으로 복귀
+        layoutFloatingTimer.setOnClickListener {
+            val intent = Intent(this, WorkoutExerciseActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT) // 기존 스택의 액티비티를 앞으로 가져옴
+            startActivity(intent)
+        }
+
+        // 새 운동 시작 버튼
+        fabStartWorkout.setOnClickListener {
+            val intent = Intent(this, WorkoutExerciseActivity::class.java)
+            workoutResultLauncher.launch(intent)
+        }
     }
 
-    // 주간 이동 로직 함수
+    /**
+     * 기준 날짜(currentCalendar)를 offset 주만큼 이동시키고 캘린더 갱신
+     */
     private fun moveWeek(offset: Int) {
-        // 캘린더에서 7일씩 앞/뒤로 이동
         currentCalendar.add(Calendar.DAY_OF_MONTH, offset * 7)
-
-        // 바뀐 날짜 기준으로 주 정보 다시 계산
-        val (title, days) = DateUtils.getWeekInfo(currentCalendar.time)
-
-        // UI 갱신
-        tvWeekTitle.text = title
-        dayAdapter.updateData(days) // 날짜 어댑터의 데이터만 갱신
+        setupCalendar()
     }
 }

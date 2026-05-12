@@ -27,7 +27,7 @@ class BodyPartAdapter(private var parts: List<BodyPart>, private val onItemClick
         holder.binding.tvPartName.text = part.name
 
         // 2. 만약 화살표 아이콘을 코드로 제어하고 싶다면
-        holder.binding.ivArrow.setImageResource(R.drawable.arrow1_calendar)
+        holder.binding.ivArrow.setImageResource(R.drawable.arrowreverse)
     }
     fun updateItems(newItems: List<BodyPart>) {
         this.parts = newItems
