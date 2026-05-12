@@ -1,0 +1,10 @@
+build/
+.gradle/
+.idea/
+*.iml
+.git/
+HELP.md
+src/test/
+**/application-secret.properties
+uploads/
+*.log

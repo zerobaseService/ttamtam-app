@@ -38,6 +38,9 @@ public enum ErrorCode {
     FILE_TOO_LARGE(413, "FILE_TOO_LARGE", "파일 크기가 허용 한도를 초과했습니다."),
     UNSUPPORTED_FILE_TYPE(400, "UNSUPPORTED_FILE_TYPE", "지원하지 않는 파일 형식입니다."),
 
+    // === Exercise ===
+    EXERCISE_NOT_FOUND(404, "EXERCISE_NOT_FOUND", "운동 종목을 찾을 수 없습니다."),
+
     // === Idempotency ===
     IDEMPOTENCY_KEY_REUSE(422, "IDEMPOTENCY_KEY_REUSE", "동일 키로 다른 본문을 재전송할 수 없습니다.");
 

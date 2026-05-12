@@ -30,11 +30,14 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/ping").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
                         .requestMatchers(HttpMethod.GET, "/static/journal-images/**").permitAll()
                         .requestMatchers("/api/uploads/**").authenticated()
                         .requestMatchers("/api/folders/**").authenticated()
                         .requestMatchers("/api/journals/**").authenticated()
+                        .requestMatchers("/api/exercises/**").authenticated()
+                        .requestMatchers("/api/me/exercises/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .exceptionHandling(e -> e.authenticationEntryPoint(

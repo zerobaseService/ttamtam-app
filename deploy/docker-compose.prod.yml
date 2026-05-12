@@ -1,0 +1,24 @@
+services:
+  app:
+    build:
+      context: ../healthcare
+      dockerfile: Dockerfile
+    image: ttamtam-app:latest
+    container_name: ttamtam-app
+    restart: unless-stopped
+    env_file:
+      - /home/ubuntu/ttamtam/.env.prod
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /home/ubuntu/ttamtam/uploads:/app/uploads
+      - /home/ubuntu/ttamtam/logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
