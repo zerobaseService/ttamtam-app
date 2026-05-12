@@ -1,51 +1,70 @@
 package com.example.healthcareapp
 
-
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
+import android.util.Log
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.adapter.DayAdapter
 import com.example.healthcareapp.utils.DateUtils
-
 import java.util.Calendar
 
 class DiaryActivity : AppCompatActivity() {
 
-    // 뷰 객체들을 담을 변수 선언 (lateinit으로 나중에 초기화)
-    private lateinit var rvCalendar: RecyclerView      // 상단 주간 날짜 리사이클러뷰
-    private lateinit var tvWeekTitle: TextView       // 현재 몇 월인지 표시하는 텍스트
-    private lateinit var btnPrevWeek: ImageView      // 이전 주로 이동하는 버튼
-    private lateinit var btnNextWeek: ImageView      // 다음 주로 이동하는 버튼
-    private lateinit var exersizeStart : TextView     // 운동 기록 화면으로 넘어가는 텍스트/버튼
+    private lateinit var rvCalendar: RecyclerView
+    private lateinit var tvWeekTitle: TextView
+    private lateinit var btnPrevWeek: ImageView
+    private lateinit var btnNextWeek: ImageView
+    private lateinit var exersizeStart: TextView
+    private lateinit var conditionButton: TextView
+    private lateinit var tvFolderTitle: TextView // 상단 일지 제목 표시용 (나의 일지/공유 일지)
+
     private var folderId: Long = -1L
     private var folderName: String? = null
-    private lateinit var dayAdapter: DayAdapter       // 날짜를 표시할 어댑터
-    private var currentCalendar = Calendar.getInstance() // 현재 날짜 정보를 가진 캘린더 객체
-    private lateinit var conditionButton : TextView
+    private lateinit var dayAdapter: DayAdapter
+    private var currentCalendar = Calendar.getInstance()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.calendarbar) // 캘린더바 레이아웃 연결
-        folderId = intent.getLongExtra("FOLDER_ID", -1L)
-        folderName = intent.getStringExtra("FOLDER_NAME")
-        // 1. 뷰들을 ID와 연결하여 초기a화
+        setContentView(R.layout.calendarbar)
+
+        // 1. Intent 데이터 받기
+        handleIntent(intent)
+
+        // 2. 뷰 초기화
         initViews()
 
-        // 2. 캘린더 리사이클러뷰와 어댑터 설정
+        // 3. 캘린더 설정
         setupCalendar()
 
-        // 3. 버튼들의 클릭 이벤트 설정
+        // 4. 리스너 설정
         initClickListeners()
-
     }
 
+    // ⭐ 컨디션 체크 후 돌아올 때 데이터를 새로고침하기 위해 필요
+    override fun onResume() {
+        super.onResume()
+        refreshData()
+    }
 
-    // findViewById를 통해 XML의 뷰들을 연결하는 함수
+    // ⭐ FLAG_ACTIVITY_SINGLE_TOP 등으로 다시 호출될 때 데이터 갱신
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+        refreshData()
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        folderId = intent?.getLongExtra("FOLDER_ID", -1L) ?: -1L
+        folderName = intent?.getStringExtra("FOLDER_NAME")
+        Log.d("JaehoonLog", "현재 폴더: $folderName (ID: $folderId)")
+    }
+
     private fun initViews() {
         tvWeekTitle = findViewById(R.id.tv_week_title)
         rvCalendar = findViewById(R.id.rv_calendar)
@@ -53,83 +72,74 @@ class DiaryActivity : AppCompatActivity() {
         btnNextWeek = findViewById(R.id.btn_next_week)
         exersizeStart = findViewById(R.id.exercise_start)
         conditionButton = findViewById(R.id.condition_check)
+
+        // 상단 타이틀 텍스트뷰가 있다면 연결 (예: 나의 일지/공유 일지 구분용)
+        // tvFolderTitle = findViewById(R.id.tv_folder_title)
+        // tvFolderTitle.text = folderName ?: "나의 일지"
     }
 
-    // 캘린더 초기 세팅 함수
     private fun setupCalendar() {
-        // DateUtils를 사용해 현재 날짜가 포함된 주의 타이틀(00월)과 날짜 리스트(7일분)를 가져옴
         val (title, days) = DateUtils.getWeekInfo(currentCalendar.time)
-        tvWeekTitle.text = title // 타이틀 텍스트 설정 (예: 4월)
+        tvWeekTitle.text = title
 
-        // 어댑터 생성 (날짜 클릭 시 해당 날짜의 일지를 업데이트하는 콜백 포함)
         dayAdapter = DayAdapter(days) { clickedDay ->
-            updateDiaryList(clickedDay.fullDate) // 클릭한 날짜로 목록 업데이트 함수 호출
+            updateDiaryList(clickedDay.fullDate)
         }
 
-        // 리사이클러뷰 설정
         rvCalendar.apply {
-            // 가로 방향(HORIZONTAL)으로 아이템을 배치하도록 설정
             layoutManager = LinearLayoutManager(this@DiaryActivity, LinearLayoutManager.HORIZONTAL, false)
-            adapter = dayAdapter // 연결할 어댑터 지정
-
-            // 리사이클러뷰가 화면에 그려진 직후 데이터를 갱신하도록 예약
-            post {
-                dayAdapter.notifyDataSetChanged()
-            }
+            adapter = dayAdapter
         }
-
-
     }
 
-    // 클릭 리스너들을 모아놓은 함수
     private fun initClickListeners() {
-        // 이전 주 버튼 클릭 시 1주 전으로 이동
-        btnPrevWeek.setOnClickListener {
-            moveWeek(-1)
-        }
+        btnPrevWeek.setOnClickListener { moveWeek(-1) }
+        btnNextWeek.setOnClickListener { moveWeek(1) }
 
-        // 다음 주 버튼 클릭 시 1주 후로 이동
-        btnNextWeek.setOnClickListener {
-            moveWeek(1)
-        }
-
-
-        conditionButton.setOnClickListener{
-            android.util.Log.d("JaehoonLog", "컨디션 버튼 클릭됨")
-            val intent1 = Intent(this, DiaryListActivity::class.java).apply {
+        // 컨디션 체크 버튼 (ConditionCheckActivity로 이동하도록 수정됨)
+        conditionButton.setOnClickListener {
+            Log.d("JaehoonLog", "컨디션 체크 이동")
+            val intent = Intent(this, ConditionCheckActivity::class.java).apply {
                 putExtra("FOLDER_ID", folderId)
                 putExtra("FOLDER_NAME", folderName)
             }
-            startActivity(intent1)
+            startActivity(intent)
         }
 
-
-
+        // 운동 시작 버튼
         exersizeStart.setOnClickListener {
-
+            if (folderId == -1L) {
+                Toast.makeText(this, "폴더 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             val intent = Intent(this, DiaryListActivity::class.java).apply {
-                putExtra("FOLDER_ID", folderId)      // 폴더 ID 전달
-                putExtra("FOLDER_NAME", folderName)  // 폴더 이름 전달
+                putExtra("FOLDER_ID", folderId)
+                putExtra("FOLDER_NAME", folderName)
             }
             startActivity(intent)
         }
     }
 
-    // 주간 단위를 변경하는 함수 (offset: -1이면 이전 주, 1이면 다음 주)
     private fun moveWeek(offset: Int) {
-        // 현재 캘린더 날짜에 7일(offset * 7)을 더하거나 뺌
         currentCalendar.add(Calendar.DAY_OF_MONTH, offset * 7)
-
-        // 바뀐 날짜 기준으로 새로운 주 정보를 다시 가져옴
         val (title, days) = DateUtils.getWeekInfo(currentCalendar.time)
-
-        // 뷰 텍스트 변경 및 어댑터 데이터 갱신
         tvWeekTitle.text = title
-        dayAdapter.updateData(days) // 어댑터 내부에 구현된 데이터 교체 함수 호출
+        dayAdapter.updateData(days)
     }
 
-    // 특정 날짜를 클릭했을 때 아래쪽 일지 리스트를 갱신하는 함수 (내용 구현 필요)
-    private fun updateDiaryList(date: String) {
+    // 데이터를 새로고침하는 함수
+    private fun refreshData() {
+        // 여기서 서버 API를 호출하여 해당 날짜의 일지가 있는지 다시 확인해야 함
+        // 예: loadDiaryFromApi(currentDate)
+        Log.d("JaehoonLog", "화면 새로고침 실행: $folderName")
 
+        // 캘린더 데이터 갱신 (필요 시)
+        val (title, days) = DateUtils.getWeekInfo(currentCalendar.time)
+        dayAdapter.updateData(days)
+    }
+
+    private fun updateDiaryList(date: String) {
+        // 날짜 클릭 시 해당 날짜의 운동 기록 리스트를 서버에서 가져오는 로직 필요
+        Log.d("JaehoonLog", "선택된 날짜: $date")
     }
 }

@@ -72,6 +72,7 @@ class HomeActivity : AppCompatActivity() {
         // 일지 화면으로 프래그먼트 교체
         supportFragmentManager.beginTransaction()
             .replace(R.id.main_container, journalFragment)
+            .addToBackStack(null)
             .commit()
 
         // ⭐ 폴더를 눌러서 이동했으므로 하단 탭 하이라이트도 '일지'로 강제 업데이트

@@ -58,19 +58,24 @@
                  />
         </LinearLayout>
 
-        <TextView
+        <FrameLayout
             android:id="@+id/btn_edit"
             android:layout_width="64dp"
             android:layout_height="32dp"
             android:layout_marginEnd="16dp"
             android:background="@drawable/bg_blue_button_soft"
-            android:gravity="center"
-            android:text="수정"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="수정"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+        </FrameLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.tabs.TabLayout

@@ -103,9 +103,8 @@ class DayAdapter(
     /**
      * 주간 이동 등으로 데이터가 완전히 바뀔 때 호출하는 함수
      */
-    fun updateData(newItems: List<DayItem>) {
-        this.items = newItems
-        this.selectedPosition = items.indexOfFirst { it.isSelected }
-        notifyDataSetChanged()
+    fun updateData(newList: List<DayItem>) {
+        this.items = newList
+        notifyDataSetChanged() // ⭐ 이게 있어야 화면이 다시 그려집니다!
     }
 }

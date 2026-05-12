@@ -16,7 +16,6 @@ class DiaryAdapter(
     private val onDotClick: (Int) -> Unit
 ) : RecyclerView.Adapter<DiaryAdapter.ViewHolder>() {
 
-    // ⭐ 재훈님이 정하신 10가지 무지개 색상 배열 그대로 유지
     private val stripeColors = intArrayOf(
         Color.parseColor("#FF6969"), Color.parseColor("#FF9245"),
         Color.parseColor("#FFD153"), Color.parseColor("#94A769"),
@@ -35,16 +34,13 @@ class DiaryAdapter(
             tvMainText.text = item.date
             tvSubText.text = item.title
 
-
+            // 왼쪽 띠 색상은 순차적으로 적용
             val targetColor = stripeColors[position % stripeColors.size]
             viewStripe.setBackgroundColor(targetColor)
 
-
-            if (position % 2 == 0) {
-                btnDot.setImageResource(R.drawable.emoticon3)
-            } else {
-                btnDot.setImageResource(R.drawable.emoticon5)
-            }
+            // ⭐ [핵심 수정] 짝수/홀수 랜덤 로직을 지우고, 데이터에 담긴 emojiResId를 직접 사용합니다.
+            // 이제 WorkoutFinishActivity에서 결정되어 배달된 그 색상이 그대로 나옵니다.
+            btnDot.setImageResource(item.emojiResId)
 
             itemView.setOnClickListener { onItemClick(item) }
             btnDot.setOnClickListener { onDotClick(adapterPosition) }

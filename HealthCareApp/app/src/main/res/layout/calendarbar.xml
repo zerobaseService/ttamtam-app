@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#EFF3FB">
+    android:background="#FFFFFF">
 
     <ImageView
         android:id="@+id/statusbar"
@@ -25,9 +25,10 @@
 
         <ImageView
             android:id="@+id/arrow_btn"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="15dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:layout_marginStart="8dp"
             android:src="@drawable/arrow"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -103,7 +104,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/bottom_navigation_diary"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/view_calendar_bg">
 
         <TextView
@@ -134,7 +135,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@id/bottom_navigation_diary"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/view_calendar_bg">
 
         <ImageView
@@ -194,10 +195,15 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/shape_btn_gray"
+                android:minHeight="0dp"
+                android:minWidth="0dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:stateListAnimator="@null"
                 android:text="컨디션 체크"
                 android:textColor="#2E3D4F"
                 android:textSize="15sp"
-                />
+            />
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/exercise_start"
                 android:layout_width="0dp"
@@ -212,29 +218,7 @@
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <androidx.cardview.widget.CardView
-        android:id="@+id/bottom_navigation_diary"
-        android:layout_width="match_parent"
-        android:layout_height="72dp"
-        android:layout_marginHorizontal="24dp"
-        android:layout_marginBottom="32dp"
-        app:cardBackgroundColor="#F1F5F9"
-        app:cardCornerRadius="36dp"
-        app:cardElevation="0dp"
-        app:layout_constraintBottom_toBottomOf="parent">
-    </androidx.cardview.widget.CardView>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_add"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="24dp"
-        android:src="@drawable/floating"
-        app:backgroundTint="#1E293B"
-        app:tint="#FFFFFF"
-        android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/bottom_navigation_diary"
-        app:layout_constraintEnd_toEndOf="parent" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

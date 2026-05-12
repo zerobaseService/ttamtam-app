@@ -1,10 +1,19 @@
 package com.example.healthcareapp.adapter
 
+import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.*
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.R
@@ -13,12 +22,13 @@ import com.example.healthcareapp.data.StatusQuestion1
 import com.example.healthcareapp.databinding.ItemCondition1Binding
 import com.example.healthcareapp.databinding.ItemConditionQuestionBinding
 import com.example.healthcareapp.databinding.ItemBodyPartSelectionBinding
-/**
- * [메인 어댑터] 운동 전후 컨디션 및 통증 부위를 기록하는 카드 리스트를 관리합니다.
- */
+import com.example.healthcareapp.sheet.PainBottomSheetFragment
+
 class ConditionAdapter(private val items: List<ConditionRecord>) :
     RecyclerView.Adapter<ConditionAdapter.ViewHolder>() {
-    // 칩 아이디와 신체 부위 텍스트 매핑 (필터링 기준)
+
+    private var editingPosition: Int = -1
+
     private val chipIdToKey = mapOf(
         R.id.chip_head to "머리/목",
         R.id.chip_upper to "상체",
@@ -26,7 +36,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         R.id.chip_lower to "하체",
         R.id.chip_foot to "발"
     )
-    // 신체 방향(앞/뒤) 및 부위에 따른 세부 명칭 데이터 리스트
+
     private val bodyDataMap = mapOf(
         "앞면" to mapOf(
             "머리/목" to listOf("머리", "이마", "얼굴", "목"),
@@ -44,7 +54,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         )
     )
 
-    private var currentDirection = "앞면"// 현재 앞면/뒷면 선택 상태
+    private var currentDirection = "앞면"
 
     inner class ViewHolder(val binding: ItemCondition1Binding) : RecyclerView.ViewHolder(binding.root)
 
@@ -56,6 +66,9 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
         val binding = holder.binding
+        val context = binding.root.context
+        val currentPos = holder.bindingAdapterPosition
+        val isEditMode = (editingPosition == currentPos)
 
         // --- [1] 헤더 로직 ---
         binding.tvConditionTitle.text = item.title
@@ -64,10 +77,28 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
 
         binding.layoutHeader.setOnClickListener {
             item.isExpanded = !item.isExpanded
-            notifyItemChanged(position)
+            notifyItemChanged(currentPos)
         }
 
-        // 1번 통증수위 처리
+        val btnEditView = binding.root.findViewById<FrameLayout>(R.id.btn_edit)
+        btnEditView?.setOnClickListener {
+            val previousEditingPosition = editingPosition
+            editingPosition = if (editingPosition == currentPos) -1 else currentPos
+            if (previousEditingPosition != -1) notifyItemChanged(previousEditingPosition)
+            notifyItemChanged(currentPos)
+        }
+
+        // ⭐ [추가] pain1 클릭 시 바텀시트 호출 (ItemCondition1Binding에 있으므로 여기서 처리)
+        binding.pain1.setOnClickListener {
+            if (context is FragmentActivity) {
+                val bottomSheet = PainBottomSheetFragment { result ->
+                    // 완료 후 "좌 팔꿈치:통증정도:3단계" 텍스트를 업데이트하거나 UI 처리를 하세요.
+                }
+                bottomSheet.show(context.supportFragmentManager, "PainBottomSheet")
+            }
+        }
+
+        // 1번 질문 처리 (SeekBar)
         if (item.questions.isNotEmpty()) {
             val firstQ = item.questions[0]
             binding.layoutFirstQuestion.apply {
@@ -76,32 +107,34 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
                 tvMinLabel.text = "매우 심함"
                 tvMaxLabel.text = "통증 없음"
 
-                slider.valueFrom = 1f
-                slider.valueTo = 10f
-                slider.stepSize = 1f
-                // 슬라이더 초기화 및 값 설정
-                slider.value = if (firstQ.score < 1f) 10f else firstQ.score
-                // 슬라이더 하단 가이드 텍스트 초기 업데이트
-                updateSliderGuideByQuestion(tvSliderGuide, 0, slider.value.toInt())
+                val seekBar = root.findViewById<SeekBar>(R.id.slider)
+                seekBar.max = 10
+                updateSeekBarStyle(seekBar, isEditMode)
 
-                slider.clearOnChangeListeners()
-                slider.addOnChangeListener { _, value, _ ->
-                    firstQ.score = value
-                    //사용자가 슬라이더를 움직일 때 실시간으로 가이드 텍스트 변경
-                    updateSliderGuideByQuestion(tvSliderGuide, 0, value.toInt())
-                }
+                val initialScore = if (firstQ.score < 1f) 10 else firstQ.score.toInt()
+                seekBar.progress = initialScore
+                updateSliderGuideByQuestion(tvSliderGuide, 0, initialScore)
+                seekBar.thumb = createThumbWithText(context, initialScore.toString(), isEditMode)
+
+                seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
+                        val finalScore = if (progress < 1) 1 else progress
+                        firstQ.score = finalScore.toFloat()
+                        updateSliderGuideByQuestion(tvSliderGuide, 0, finalScore)
+                        p0?.thumb = createThumbWithText(context, finalScore.toString(), isEditMode)
+                    }
+                    override fun onStartTrackingTouch(p0: SeekBar?) {}
+                    override fun onStopTrackingTouch(p0: SeekBar?) {}
+                })
             }
         }
 
-        // 서브 질문 리스트 (2~5번)
         if (item.isShowAllQuestions) {
             binding.btnShowAll.visibility = View.GONE
             binding.rvRestQuestions.visibility = View.VISIBLE
-
-            val restQuestions = item.questions.drop(1)
             binding.rvRestQuestions.apply {
                 layoutManager = LinearLayoutManager(context)
-                adapter = QuestionsSubAdapter(restQuestions)
+                adapter = QuestionsSubAdapter(item.questions.drop(1), isEditMode)
                 isNestedScrollingEnabled = false
             }
         } else {
@@ -111,14 +144,19 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
 
         binding.btnShowAll.setOnClickListener {
             item.isShowAllQuestions = true
-            notifyItemChanged(position)
+            notifyItemChanged(currentPos)
         }
 
         setupBodySelection(binding)
         binding.etFeedbackMemo.setText(item.memo)
     }
 
-    // --- 질문별 통합 가이드 로직 ---
+    private fun updateSeekBarStyle(seekBar: SeekBar, isEditMode: Boolean) {
+        val blueColor = Color.parseColor("#3B82F6")
+        val grayColor = Color.parseColor("#94A3B8")
+        seekBar.progressTintList = ColorStateList.valueOf(if (isEditMode) blueColor else grayColor)
+    }
+
     private fun updateSliderGuideByQuestion(textView: TextView, questionIndex: Int, score: Int) {
         val description = when (questionIndex) {
             0 -> getPainGuide(score)
@@ -132,91 +170,41 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
     }
 
     private fun getPainGuide(score: Int): String = when (score) {
-        1 -> "매우 심함 / 운동이 어려움"
-        2 -> "일상 움직임도 불편함"
-        3 -> "운동 시 불편이 큼"
-        4 -> "움직일 때 거슬리는 수준"
-        5 -> "통증이 분명히 느껴짐"
-        6 -> "신경은 쓰이지만 운동 가능"
-        7 -> "약간 불편한 정도"
-        8 -> "아주 약하게 느껴짐"
-        9 -> "거의 느껴지지 않음"
-        10 -> "통증 없음"
+        1 -> "매우 심함 / 운동이 어려움"; 2 -> "일상 움직임도 불편함"; 3 -> "운동 시 불편이 큼"; 4 -> "움직일 때 거슬리는 수준"; 5 -> "통증이 분명히 느껴짐"
+        6 -> "신경은 쓰이지만 운동 가능"; 7 -> "약간 불편한 정도"; 8 -> "아주 약하게 느껴짐"; 9 -> "거의 느껴지지 않음"; 10 -> "통증 없음"
         else -> ""
     }
 
     private fun getSleepTimeGuide(score: Int): String = when (score) {
-        1 -> "1시간 수준 / 거의 못 잠"
-        2 -> "2시간 / 매우 부족"
-        3 -> "3시간 / 많이 부족"
-        4 -> "4시간 / 부족"
-        5 -> "5시간 / 약간 부족"
-        6 -> "6시간 / 다소 부족"
-        7 -> "7시간 / 보통"
-        8 -> "8시간 / 적절"
-        9 -> "9시간 / 충분"
-        10 -> "10시간 / 매우 충분"
+        1 -> "1시간 수준 / 거의 못 잠"; 2 -> "2시간 / 매우 부족"; 3 -> "3시간 / 많이 부족"; 4 -> "4시간 / 부족"; 5 -> "5시간 / 약간 부족"
+        6 -> "6시간 / 다소 부족"; 7 -> "7시간 / 보통"; 8 -> "8시간 / 적절"; 9 -> "9시간 / 충분"; 10 -> "10시간 / 매우 충분"
         else -> ""
     }
 
     private fun getSleepQualityGuide(score: Int): String = when (score) {
-        1 -> "거의 못 잠"
-        2 -> "자주 깨고 매우 피곤함"
-        3 -> "여러 번 깨고 피로함"
-        4 -> "뒤척임 많고 개운하지 않음"
-        5 -> "잤지만 개운하지 않음"
-        6 -> "보통"
-        7 -> "비교적 잘 잠"
-        8 -> "깊게 잔 편"
-        9 -> "거의 안 깨고 개운함"
-        10 -> "푹 자고 매우 개운함"
+        1 -> "거의 못 잠"; 2 -> "자주 깨고 매우 피곤함"; 3 -> "여러 번 깨고 피로함"; 4 -> "뒤척임 많고 개운하지 않음"; 5 -> "잤지만 개운하지 않음"
+        6 -> "보통"; 7 -> "비교적 잘 잠"; 8 -> "깊게 잔 편"; 9 -> "거의 안 깨고 개운함"; 10 -> "푹 자고 매우 개운함"
         else -> ""
     }
 
     private fun getFatigueGuide(score: Int): String = when (score) {
-        1 -> "매우 많이 남아있음"
-        2 -> "많이 남아있음"
-        3 -> "꽤 남아있음"
-        4 -> "남아있는 편"
-        5 -> "어느 정도 남아있음"
-        6 -> "조금 남아있음"
-        7 -> "약간 남아있음"
-        8 -> "거의 없음"
-        9 -> "아주 미세함"
-        10 -> "전혀 없음"
+        1 -> "매우 많이 남아있음"; 2 -> "많이 남아있음"; 3 -> "꽤 남아있음"; 4 -> "남아있는 편"; 5 -> "어느 정도 남아있음"
+        6 -> "조금 남아있음"; 7 -> "약간 남아있음"; 8 -> "거의 없음"; 9 -> "아주 미세함"; 10 -> "전혀 없음"
         else -> ""
     }
 
     private fun getOverallConditionGuide(score: Int): String = when (score) {
-        1 -> "매우 안 좋음 / 많이 지치고 힘든 상태"
-        2 -> "많이 안 좋음 / 몸과 마음이 무거운 상태"
-        3 -> "안 좋은 편 / 피로감이 큰 상태"
-        4 -> "다소 안 좋음 / 불편하고 무거운 느낌"
-        5 -> "보통 이하 / 썩 좋지는 않은 상태"
-        6 -> "무난함 / 크게 나쁘지 않은 상태"
-        7 -> "괜찮은 편 / 비교적 안정된 상태"
-        8 -> "좋은 편 / 몸과 마음이 비교적 가벼움"
-        9 -> "매우 좋음 / 활력이 있고 안정적임"
-        10 -> "최상 / 몸과 마음이 매우 가볍고 개운함"
+        1 -> "매우 안 좋음 / 많이 지치고 힘든 상태"; 2 -> "많이 안 좋음 / 몸과 마음이 무거운 상태"; 3 -> "안 좋은 편 / 피로감이 큰 상태"
+        4 -> "다소 안 좋음 / 불편하고 무거운 느낌"; 5 -> "보통 이하 / 썩 좋지는 않은 상태"; 6 -> "무난함 / 크게 나쁘지 않은 상태"
+        7 -> "괜찮은 편 / 비교적 안정된 상태"; 8 -> "좋은 편 / 몸과 마음이 비교적 가벼움"; 9 -> "매우 좋음 / 활력이 있고 안정적임"; 10 -> "최상 / 몸과 마음이 매우 가볍고 개운함"
         else -> ""
     }
-    // 앞면/뒷면 전환 버튼 리스너
+
     private fun setupBodySelection(binding: ItemCondition1Binding) {
-        binding.btnFront.setOnClickListener {
-            currentDirection = "앞면"
-            updateDirectionUI(binding)
-            updateBodyPartsList(binding)
-        }
-        binding.btnBack.setOnClickListener {
-            currentDirection = "뒷면"
-            updateDirectionUI(binding)
-            updateBodyPartsList(binding)
-        }
-        binding.chipGroupBody.setOnCheckedStateChangeListener { _, checkedIds ->
-            if (checkedIds.isNotEmpty()) updateBodyPartsList(binding)
-        }
-        updateDirectionUI(binding)
-        updateBodyPartsList(binding)
+        binding.btnFront.setOnClickListener { currentDirection = "앞면"; updateDirectionUI(binding); updateBodyPartsList(binding) }
+        binding.btnBack.setOnClickListener { currentDirection = "뒷면"; updateDirectionUI(binding); updateBodyPartsList(binding) }
+        binding.chipGroupBody.setOnCheckedStateChangeListener { _, checkedIds -> if (checkedIds.isNotEmpty()) updateBodyPartsList(binding) }
+        updateDirectionUI(binding); updateBodyPartsList(binding)
     }
 
     private fun updateDirectionUI(binding: ItemCondition1Binding) {
@@ -224,16 +212,11 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         val activeColor = ContextCompat.getColor(context, R.color.front_black)
         val inactiveColor = ContextCompat.getColor(context, R.color.back_gray)
         if (currentDirection == "앞면") {
-            binding.btnFront.setBackgroundResource(R.drawable.bg_tab_selected)
-            binding.btnFront.setTextColor(activeColor)
-            binding.btnBack.setBackgroundResource(android.R.color.transparent)
-            binding.btnBack.setTextColor(inactiveColor)
+            binding.btnFront.setBackgroundResource(R.drawable.bg_tab_selected); binding.btnFront.setTextColor(activeColor)
+            binding.btnBack.setBackgroundResource(android.R.color.transparent); binding.btnBack.setTextColor(inactiveColor)
         } else {
-
-            binding.btnBack.setBackgroundResource(R.drawable.bg_tab_selected)
-            binding.btnBack.setTextColor(activeColor)
-            binding.btnFront.setBackgroundResource(android.R.color.transparent)
-            binding.btnFront.setTextColor(inactiveColor)
+            binding.btnBack.setBackgroundResource(R.drawable.bg_tab_selected); binding.btnBack.setTextColor(activeColor)
+            binding.btnFront.setBackgroundResource(android.R.color.transparent); binding.btnFront.setTextColor(inactiveColor)
         }
     }
 
@@ -248,79 +231,51 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         }
     }
 
+    private fun createThumbWithText(context: Context, text: String, isEditMode: Boolean): Drawable {
+        val size = 115
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = Color.WHITE; canvas.drawCircle(size / 2f, size / 2f, size / 2.5f, paint)
+        paint.style = Paint.Style.STROKE; paint.strokeWidth = 4f; paint.color = Color.parseColor("#E2E8F0"); canvas.drawCircle(size / 2f, size / 2f, size / 2.5f, paint)
+        paint.style = Paint.Style.FILL; paint.color = if (isEditMode) Color.parseColor("#3B82F6") else Color.parseColor("#64748B")
+        paint.textSize = 44f; paint.textAlign = Paint.Align.CENTER; paint.isFakeBoldText = true
+        val textBounds = Rect(); paint.getTextBounds(text, 0, text.length, textBounds)
+        val yPos = (canvas.height / 2f) - (textBounds.centerY()); canvas.drawText(text, size / 2f, yPos, paint)
+        return BitmapDrawable(context.resources, bitmap)
+    }
+
     override fun getItemCount(): Int = items.size
 
-    private inner class QuestionsSubAdapter(private val qList: List<StatusQuestion1>) :
-        RecyclerView.Adapter<QuestionsSubAdapter.QViewHolder>() {
-
+    private inner class QuestionsSubAdapter(private val qList: List<StatusQuestion1>, private val isEditMode: Boolean) : RecyclerView.Adapter<QuestionsSubAdapter.QViewHolder>() {
         inner class QViewHolder(val binding: ItemConditionQuestionBinding) : RecyclerView.ViewHolder(binding.root)
-
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QViewHolder {
             val binding = ItemConditionQuestionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             return QViewHolder(binding)
         }
-
         override fun onBindViewHolder(holder: QViewHolder, position: Int) {
-            val q = qList[position]
-            // qList는 1번(통증)을 drop하고 들어오므로 index를 2~5번에 맞춤.
-            val actualQuestionNum = position + 2
-
+            val q = qList[position]; val context = holder.binding.root.context; val actualQuestionNum = position + 2
             holder.binding.apply {
                 tvStepCount.text = "$actualQuestionNum/5"
-
-                // 질문 제목과 Min/Max 라벨 설정
-                when(actualQuestionNum) {
-                    2 -> {
-                        tvQuestionTitle.text = "오늘 수면 시간이 어떻게 되시나요?"
-                        tvMinLabel.text = "1시간"
-                        tvMaxLabel.text = "10시간"
+                val seekBar = root.findViewById<SeekBar>(R.id.slider); seekBar.max = 10; updateSeekBarStyle(seekBar, isEditMode)
+                val initialScore = if (q.score < 1f) (if (actualQuestionNum >= 4) 7 else 10) else q.score.toInt()
+                seekBar.progress = initialScore; updateSliderGuideByQuestion(tvSliderGuide, actualQuestionNum - 1, initialScore)
+                seekBar.thumb = createThumbWithText(context, initialScore.toString(), isEditMode)
+                seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
+                        val finalScore = if (progress < 1) 1 else progress; q.score = finalScore.toFloat()
+                        updateSliderGuideByQuestion(tvSliderGuide, actualQuestionNum - 1, finalScore)
+                        p0?.thumb = createThumbWithText(context, finalScore.toString(), isEditMode)
                     }
-                    3 -> {
-                        tvQuestionTitle.text = "수면의 질은 어떠셨나요?"
-                        tvMinLabel.text = "거의 못 잠"
-                        tvMaxLabel.text = "매우 개운함"
-                    }
-                    4 -> {
-                        tvQuestionTitle.text = "전 날 운동의 피로가 남아있나요?"
-                        tvMinLabel.text = "매우 많이 남아있음"
-                        tvMaxLabel.text = "전혀 없음"
-                    }
-                    5 -> {
-                        tvQuestionTitle.text = "현재 몸과 마음의 컨디션은 어떤가요?"
-                        tvMinLabel.text = "매우 안 좋음"
-                        tvMaxLabel.text = "최상"
-                    }
-                    else -> {
-                        tvQuestionTitle.text = q.title
-                        tvMinLabel.text = "매우 안 좋음"
-                        tvMaxLabel.text = "최상"
-                    }
-                }
-
-                slider.valueFrom = 1f
-                slider.valueTo = 10f
-                slider.stepSize = 1f
-
-                // 초기값 설정: 4, 5번 질문은 긍정적인 쪽(높은 점수)으로 기본값 세팅
-                slider.value = if (q.score < 1f) (if (actualQuestionNum >= 4) 7f else 10f) else q.score
-
-                // 가이드 텍스트 업데이트 (실제 인덱스 1~4 대응)
-                updateSliderGuideByQuestion(tvSliderGuide, actualQuestionNum - 1, slider.value.toInt())
-
-                slider.clearOnChangeListeners()
-                slider.addOnChangeListener { _, value, _ ->
-                    q.score = value
-                    //부모 클래스인 ConditionAdapter의 updateSliderGuideByQuestion 호출
-                    updateSliderGuideByQuestion(tvSliderGuide, actualQuestionNum - 1, value.toInt())
-                }
+                    override fun onStartTrackingTouch(p0: SeekBar?) {}
+                    override fun onStopTrackingTouch(p0: SeekBar?) {}
+                })
             }
         }
         override fun getItemCount(): Int = qList.size
     }
-    /**
-     * [최하위 어댑터] 선택된 부위의 세부 명칭을 보여주는 리스트.
-     */
-    private class BodyPartDetailAdapter(private val parts: List<String>) :
+
+    private inner class BodyPartDetailAdapter(private val parts: List<String>) :
         RecyclerView.Adapter<BodyPartDetailAdapter.BodyViewHolder>() {
         inner class BodyViewHolder(val binding: ItemBodyPartSelectionBinding) : RecyclerView.ViewHolder(binding.root)
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BodyViewHolder {
@@ -329,6 +284,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         }
         override fun onBindViewHolder(holder: BodyViewHolder, position: Int) {
             holder.binding.tvPartName.text = parts[position]
+            // 여기서는 이제 pain1 클릭 로직을 제거했습니다. (부모에서 처리함)
         }
         override fun getItemCount(): Int = parts.size
     }

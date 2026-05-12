@@ -2,6 +2,7 @@ package com.example.healthcareapp
 
 import android.graphics.Typeface
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.ImageView
@@ -31,27 +32,40 @@ class WorkoutActivity : AppCompatActivity() {
         val tvStartTime = findViewById<TextView>(R.id.tv_start_time)
         val tvEndTime = findViewById<TextView>(R.id.tv_end_time)
 
-        // ⭐ 상단 헤더의 날짜와 이모티콘 뷰 (XML ID 일치 여부를 확인하세요)
+        // 상단 헤더의 날짜와 이모티콘 뷰
         val tvHeaderDate = findViewById<TextView>(R.id.tv_date_header)
         val ivHeaderEmoji = findViewById<ImageView>(R.id.condition_emoticon)
 
         val conditionname = "컨디션 체크"
 
-        // 2. ⭐ 이전 화면(DiaryListFragment)에서 보낸 데이터 받아오기
+        // 2. ⭐ 데이터 수신 및 로그 확인 (수정 포인트)
         val diaryDate = intent.getStringExtra("DIARY_DATE") ?: "날짜 없음"
+
+        // 기본값을 -1로 설정해야 "진짜로 데이터가 넘어왔는지" 로그로 확인이 가능합니다.
         val emojiResId = intent.getIntExtra("EMOJI_RES_ID", -1)
         val startTab = intent.getIntExtra("SELECT_TAB", 0)
 
+        // Logcat에서 'JaehoonTest' 태그로 검색하세요.
+        Log.d("JaehoonTest", "--- WorkoutActivity 데이터 수신 확인 ---")
+        Log.d("JaehoonTest", "수신된 날짜: $diaryDate")
+        Log.d("JaehoonTest", "수신된 이모티콘 ID: $emojiResId")
+
         // 3. ⭐ 받아온 데이터를 상단 헤더에 적용
         tvHeaderDate.text = diaryDate
+
         if (emojiResId != -1) {
+            // 정상적으로 전달받은 경우
             ivHeaderEmoji.setImageResource(emojiResId)
             ivHeaderEmoji.visibility = View.VISIBLE
+            Log.d("JaehoonTest", "이모티콘 적용 성공")
         } else {
-            ivHeaderEmoji.visibility = View.GONE
+            // 데이터를 못 받은 경우 (기본 이미지 세팅 및 경고 로그)
+            Log.e("JaehoonTest", "⚠️ EMOJI_RES_ID가 전달되지 않았습니다. 기본 이미지를 사용합니다.")
+            ivHeaderEmoji.setImageResource(R.drawable.emoticon1)
+            ivHeaderEmoji.visibility = View.VISIBLE
         }
 
-        // 4. 타이머 데이터 더미 세팅
+        // 4. 타이머 데이터 더미 세팅 (실제 데이터 연동 필요 시 수정)
         tvMainTimer.text = "01:12:32"
         tvStartTime.text = "16:16"
         tvEndTime.text = "17:30"
@@ -93,7 +107,7 @@ class WorkoutActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
-        // 8. ⭐ 전달받은 포지션으로 탭 즉시 이동 (컨디션 체크 등)
+        // 8. 전달받은 포지션으로 탭 즉시 이동
         viewPager.post {
             viewPager.setCurrentItem(startTab, false)
         }

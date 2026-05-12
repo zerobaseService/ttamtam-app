@@ -5,12 +5,15 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatButton
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.healthcareapp.ConditionCheckActivity
+
 import com.example.healthcareapp.HomeActivity
 import com.example.healthcareapp.R
 import com.example.healthcareapp.WorkoutActivity
@@ -25,13 +28,11 @@ class DiaryMainFragment : Fragment() {
     private lateinit var btnPrevWeek: ImageView
     private lateinit var btnNextWeek: ImageView
 
-    // ⭐ XML의 ID인 exercise_start와 condition_check에 맞게 버튼 선언
     private lateinit var exerciseStartBtn: AppCompatButton
     private lateinit var conditionCheckBtn: AppCompatButton
 
-    // ⭐ XML의 ID 구조에 맞게 수정
-    private var tvDiaryHeader: TextView? = null  // 중간의 "나의 일지" (ID: tv_diary_header)
-    private var tvFolderTitle: TextView? = null  // 상단의 "홍길동" (ID: tv_folder_title)
+    private var tvDiaryHeader: TextView? = null
+    private var tvFolderTitle: TextView? = null
 
     private lateinit var dayAdapter: DayAdapter
     private var currentCalendar = Calendar.getInstance()
@@ -53,15 +54,18 @@ class DiaryMainFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // ⭐ DiaryMainFragment가 참조하는 레이아웃
-        val view = inflater.inflate(R.layout.calendarbar, container, false)
+        // onCreateView에서는 레이아웃만 생성하여 반환합니다.
+        return inflater.inflate(R.layout.calendarbar, container, false)
+    }
+
+    // ⭐ 핵심 수정: 뷰가 완전히 생성된 직후인 이 시점에 초기화 로직을 실행해야 버튼이 제대로 동작합니다.
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         initViews(view)
         setupCalendar()
         setupModeUI()
         initClickListeners()
-
-        return view
     }
 
     private fun initViews(view: View) {
@@ -70,20 +74,15 @@ class DiaryMainFragment : Fragment() {
         btnPrevWeek = view.findViewById(R.id.btn_prev_week)
         btnNextWeek = view.findViewById(R.id.btn_next_week)
 
-        // ⭐ 보내주신 XML의 실제 ID와 매칭 (AppCompatButton 타입)
         conditionCheckBtn = view.findViewById(R.id.condition_check)
         exerciseStartBtn = view.findViewById(R.id.exercise_start)
 
-        // ⭐ 문구를 바꿀 헤더와 폴더 타이틀 ID 매칭
         tvDiaryHeader = view.findViewById(R.id.tv_diary_header)
         tvFolderTitle = view.findViewById(R.id.tv_folder_title)
     }
 
     private fun setupModeUI() {
-        // 1. 중간 타이틀 변경 (공유 모드 여부에 따라)
         tvDiaryHeader?.text = if (isSharedMode) "공유 일지" else "나의 일지"
-
-        // 2. 상단 폴더 이름 설정
         tvFolderTitle?.text = folderName ?: "일지"
     }
 
@@ -103,25 +102,47 @@ class DiaryMainFragment : Fragment() {
     }
 
     private fun initClickListeners() {
-        btnPrevWeek.setOnClickListener { moveWeek(-1) }
-        btnNextWeek.setOnClickListener { moveWeek(1) }
+        view?.let { safeView ->
 
-        // 컨디션 체크 버튼 클릭 시
-        conditionCheckBtn.setOnClickListener {
-            val intent = Intent(requireContext(), WorkoutActivity::class.java).apply {
-                putExtra("FOLDER_ID", folderId)
-                putExtra("FOLDER_NAME", folderName)
-                putExtra("IS_SHARED_MODE", isSharedMode)
+            // 1. 왼쪽 상단 화살표 (폴더 리스트로 돌아가기)
+            safeView.findViewById<ImageView>(R.id.arrow_btn)?.setOnClickListener {
+                // 스택에 이전 프래그먼트가 있다면 뒤로 가고, 없다면 액티비티를 종료하거나 홈으로 이동합니다.
+                if (parentFragmentManager.backStackEntryCount > 0) {
+                    parentFragmentManager.popBackStack()
+                } else {
+                    // 스택이 비어있을 경우 액티비티 자체의 뒤로가기 기능을 실행 (폴더 리스트로 복귀)
+                    activity?.onBackPressedDispatcher?.onBackPressed()
+                }
             }
-            startActivity(intent)
-        }
 
-        // 운동 시작 버튼 클릭 시 (DiaryListFragment로 이동하는 HomeActivity 함수 호출)
-        exerciseStartBtn.setOnClickListener {
-            (activity as? HomeActivity)?.moveToDiaryList(folderId, folderName, isSharedMode)
+            // ... 나머지 버튼 리스너들 (주간 이동, 컨디션 체크 등) ...
+            btnPrevWeek.setOnClickListener { moveWeek(-1) }
+            btnNextWeek.setOnClickListener { moveWeek(1) }
+
+//            conditionCheckBtn.setOnClickListener {
+//                val intent = Intent(requireContext(), WorkoutActivity::class.java).apply {
+//                    putExtra("FOLDER_ID", folderId)
+//                    putExtra("FOLDER_NAME", folderName)
+//                    putExtra("IS_SHARED_MODE", isSharedMode)
+//                    putExtra("SELECT_TAB", 1)
+//                }
+//                startActivity(intent)
+//            }
+            conditionCheckBtn.setOnClickListener {
+                val intent = Intent(requireContext(), ConditionCheckActivity::class.java).apply {
+                    putExtra("FOLDER_ID", folderId)
+                    putExtra("FOLDER_NAME", folderName)
+                    putExtra("IS_SHARED_MODE", isSharedMode)
+                    putExtra("SELECT_TAB", 1)
+                }
+                startActivity(intent)
+            }
+
+            exerciseStartBtn.setOnClickListener {
+                (activity as? HomeActivity)?.moveToDiaryList(folderId, folderName, isSharedMode)
+            }
         }
     }
-
     private fun moveWeek(offset: Int) {
         currentCalendar.add(Calendar.DAY_OF_MONTH, offset * 7)
         val (title, days) = DateUtils.getWeekInfo(currentCalendar.time)
@@ -130,6 +151,6 @@ class DiaryMainFragment : Fragment() {
     }
 
     private fun updateDiaryList(date: String) {
-        // 선택된 날짜에 따른 일지 목록 업데이트 로직
+        // 선택된 날짜에 따른 업데이트 로직
     }
 }
