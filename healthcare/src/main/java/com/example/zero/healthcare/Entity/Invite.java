@@ -34,11 +34,15 @@ public class Invite {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "active", nullable = false)
+    private boolean active;
+
     public static Invite create(DiaryFolder folder, String tokenHash) {
         Invite invite = new Invite();
         invite.folder = folder;
         invite.tokenHash = tokenHash;
         invite.createdAt = LocalDateTime.now();
+        invite.active = true;
         return invite;
     }
 }

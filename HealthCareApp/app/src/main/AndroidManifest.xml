@@ -36,7 +36,7 @@
         <activity
             android:name=".InviteAcceptActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            android:theme="@style/Theme.Dialog.Transparent">
 
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -74,10 +74,6 @@
         <activity android:name=".DiaryActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
-        </activity>
-        <activity android:name=".FolderActivity2"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-            >
         </activity>
         <activity android:name=".HomeActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
