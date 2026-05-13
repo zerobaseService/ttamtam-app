@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.healthcareapp.data.ApiResponse
@@ -23,6 +24,7 @@ class InviteAcceptActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        supportActionBar?.hide()
         setContentView(R.layout.activity_invite_accept)
 
         processUri(intent?.data)
@@ -38,9 +40,7 @@ class InviteAcceptActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<Button>(R.id.btn_decline).setOnClickListener {
-            finish()
-        }
+        findViewById<View>(R.id.btn_close_invite).setOnClickListener { finish() }
     }
 
     private fun processUri(uri: Uri?) {
@@ -64,8 +64,8 @@ class InviteAcceptActivity : AppCompatActivity() {
             return
         }
 
-        val message = if (!folderName.isNullOrBlank()) "'$folderName' 폴더에 초대되었습니다."
-                      else "초대 링크를 통해 폴더에 참여할 수 있습니다."
+        val message = if (!folderName.isNullOrBlank()) "'$folderName' 폴더를 추가하시겠어요?"
+                      else "폴더를 추가하시겠어요?"
         findViewById<TextView>(R.id.tv_invite_message).text = message
 
         val accessToken = getSharedPreferences("auth_prefs", MODE_PRIVATE)
@@ -94,23 +94,38 @@ class InviteAcceptActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         Log.d("InviteAccept", "성공 → FolderActivity 이동")
                         Toast.makeText(this@InviteAcceptActivity, "폴더에 참여했습니다!", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@InviteAcceptActivity, FolderActivity2::class.java))
+                        startActivity(Intent(this@InviteAcceptActivity, HomeActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        })
                         finish()
                     } else {
                         val errorBody = response.errorBody()?.string() ?: ""
                         Log.e("InviteAccept", "실패: code=${response.code()}, body=$errorBody")
-                        val msg = when (response.code()) {
-                            400 -> when {
-                                errorBody.contains("ALREADY_MEMBER") -> "이미 참여 중인 폴더입니다."
-                                errorBody.contains("INVALID_TOKEN") -> "유효하지 않은 초대 링크입니다."
-                                errorBody.contains("FOLDER_CLOSED") -> "닫힌 폴더입니다."
-                                else -> "초대 수락 실패"
+                        when {
+                            errorBody.contains("ALREADY_MEMBER") -> {
+                                Toast.makeText(this@InviteAcceptActivity, "이미 참여 중인 폴더입니다.", Toast.LENGTH_SHORT).show()
+                                startActivity(Intent(this@InviteAcceptActivity, HomeActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                })
+                                finish()
                             }
-                            409 -> "이미 2명이 참여 중입니다."
-                            else -> "초대 수락 실패 (${response.code()})"
+                            errorBody.contains("INVALID_TOKEN") -> {
+                                Toast.makeText(this@InviteAcceptActivity, "유효하지 않은 초대 링크입니다.", Toast.LENGTH_SHORT).show()
+                                finish()
+                            }
+                            errorBody.contains("FOLDER_CLOSED") -> {
+                                Toast.makeText(this@InviteAcceptActivity, "닫힌 폴더입니다.", Toast.LENGTH_SHORT).show()
+                                finish()
+                            }
+                            response.code() == 409 -> {
+                                Toast.makeText(this@InviteAcceptActivity, "이미 2명이 참여 중입니다.", Toast.LENGTH_SHORT).show()
+                                finish()
+                            }
+                            else -> {
+                                Toast.makeText(this@InviteAcceptActivity, "초대 수락 실패 (${response.code()})", Toast.LENGTH_SHORT).show()
+                                findViewById<Button>(R.id.btn_accept).isEnabled = true
+                            }
                         }
-                        Toast.makeText(this@InviteAcceptActivity, msg, Toast.LENGTH_SHORT).show()
-                        findViewById<Button>(R.id.btn_accept).isEnabled = true
                     }
                 }
 
