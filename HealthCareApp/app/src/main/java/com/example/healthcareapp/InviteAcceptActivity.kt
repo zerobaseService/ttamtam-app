@@ -64,9 +64,8 @@ class InviteAcceptActivity : AppCompatActivity() {
             return
         }
 
-        val message = if (!folderName.isNullOrBlank()) "'$folderName' 폴더를 추가하시겠어요?"
-                      else "폴더를 추가하시겠어요?"
-        findViewById<TextView>(R.id.tv_invite_message).text = message
+        findViewById<TextView>(R.id.tv_folder_name).text =
+            if (!folderName.isNullOrBlank()) folderName else ""
 
         val accessToken = getSharedPreferences("auth_prefs", MODE_PRIVATE)
             .getString("access_token", null)
