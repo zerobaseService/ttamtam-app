@@ -116,19 +116,19 @@ class FolderMainFragment : Fragment() {
         FilterShared.setOnClickListener {
             isFilterSharedChecked = !isFilterSharedChecked
             FilterShared.isSelected = isFilterSharedChecked
-            applyFilterAndSort()
+            loadFolders()
         }
 
         // [정렬] 최근수정일순
         SortModified.setOnClickListener {
             currentSortType = "최근수정일순"
-            applyFilterAndSort()
+            loadFolders()
         }
 
         // [정렬] 생성일순
         SortCreated.setOnClickListener {
             currentSortType = "생성일순"
-            applyFilterAndSort()
+            loadFolders()
         }
 
         // [폴더 추가] '새 폴더 N' 형식으로 중복 없는 이름 생성 후 서버 요청
@@ -150,10 +150,11 @@ class FolderMainFragment : Fragment() {
      * [Retrofit] 서버에서 전체 폴더 목록 로드
      */
     private fun loadFolders() {
-        RetrofitClient.folderService.getFolders()
+        val sort = if (currentSortType == "생성일순") "CREATED_AT" else "UPDATED_AT"
+        val shared = if (isFilterSharedChecked) true else null
+        RetrofitClient.folderService.getFolders(sort = sort, shared = shared)
             .enqueue(object : Callback<ApiResponse<FolderListResponse>> {
                 override fun onResponse(call: Call<ApiResponse<FolderListResponse>>, response: Response<ApiResponse<FolderListResponse>>) {
-                    // ⭐ isAdded 체크: 프래그먼트가 아직 액티비티에 붙어 있을 때만 UI 갱신 수행
                     if (isAdded && response.isSuccessful) {
                         val folders = response.body()?.data?.folders ?: return
                         folderList.clear()
@@ -167,7 +168,7 @@ class FolderMainFragment : Fragment() {
                                 )
                             )
                         }
-                        applyFilterAndSort() // 데이터 가공 및 UI 업데이트
+                        updateUI()
                     }
                 }
                 override fun onFailure(call: Call<ApiResponse<FolderListResponse>>, t: Throwable) {
@@ -176,31 +177,10 @@ class FolderMainFragment : Fragment() {
             })
     }
 
-    /**
-     * 필터링과 정렬 기준에 맞춰 리스트 가공 후 어댑터 갱신
-     */
-    private fun applyFilterAndSort() {
+    private fun updateUI() {
         if (!isAdded) return
-        updateSortUI() // 정렬 텍스트 강조 처리
-
-        // 1. 필터링 (공유 여부)
-        var displayList = if (isFilterSharedChecked) {
-            folderList.filter { it.isShared }
-        } else {
-            folderList.toList()
-        }
-
-        // 2. 정렬 (날짜 기준)
-        displayList = if (currentSortType == "최근수정일순") {
-            displayList.sortedByDescending { it.lastmodified }
-        } else {
-            displayList.sortedBy { it.lastmodified }
-        }
-
-        // 3. UI 반영
-        folderAdapter.updateData(displayList)
-
-        // 4. 리스트 상태에 따른 빈 화면 노출 여부 결정
+        updateSortUI()
+        folderAdapter.updateData(folderList.toList())
         if (folderList.isEmpty()) {
             emptyView.visibility = View.VISIBLE
             recyclerView.visibility = View.GONE

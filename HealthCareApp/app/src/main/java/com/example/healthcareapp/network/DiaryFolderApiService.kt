@@ -24,7 +24,8 @@ interface DiaryFolderApiService {
     fun getFolders(
         @Query("size") size: Int = 20,
         @Query("sort") sort: String = "UPDATED_AT",
-        @Query("cursor") cursor: String? = null
+        @Query("cursor") cursor: String? = null,
+        @Query("shared") shared: Boolean? = null
     ): Call<ApiResponse<FolderListResponse>>
 
     @POST("/api/folders")
