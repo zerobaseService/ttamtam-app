@@ -3,16 +3,24 @@ package com.example.healthcareapp
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import com.example.healthcareapp.adapter.BodyPart
 import com.example.healthcareapp.adapter.BodyPartAdapter
 import com.example.healthcareapp.adapter.StatusQuestionAdapter
 import com.example.healthcareapp.data.ApiResponse
 import com.example.healthcareapp.data.CompleteJournalRequest
+import com.example.healthcareapp.network.ImageUploadApiService
+import com.example.healthcareapp.network.ImageUploadResponse
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import com.example.healthcareapp.data.ExerciseDto
 import com.example.healthcareapp.data.ExerciseRecord
 import com.example.healthcareapp.data.ExerciseSetDto
@@ -44,6 +52,13 @@ class WorkoutFinishActivity : AppCompatActivity() {
     private var workoutDate: String = ""
     private var startedAt: String = ""
     private var exercises: List<ExerciseRecord> = emptyList()
+    private val uploadedImageUrls = mutableListOf<String>()
+
+    private val pickImageLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { uploadImage(it) }
+    }
 
     private val emojiList = listOf(
         R.drawable.emoticon1, R.drawable.emoticon2, R.drawable.emoticon3,
@@ -83,7 +98,58 @@ class WorkoutFinishActivity : AppCompatActivity() {
         setupStatusQuestions()
         setupBodyParts()
         setupPainTagClear()
+        setupPhotoAttachment()
         initClickListeners()
+    }
+
+    private fun setupPhotoAttachment() {
+        binding.btnAddPhoto.setOnClickListener {
+            pickImageLauncher.launch("image/*")
+        }
+        binding.btnRemovePhoto.setOnClickListener {
+            uploadedImageUrls.clear()
+            binding.ivPreview.setImageDrawable(null)
+            binding.btnRemovePhoto.visibility = View.GONE
+            binding.ivPreview.visibility = View.GONE
+        }
+        binding.btnRemovePhoto.visibility = View.GONE
+        binding.ivPreview.visibility = View.GONE
+    }
+
+    private fun uploadImage(uri: Uri) {
+        val inputStream = contentResolver.openInputStream(uri) ?: return
+        val bytes = inputStream.readBytes()
+        inputStream.close()
+
+        val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
+        val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+        val ext = if (mimeType.contains("png")) "png" else "jpg"
+        val part = MultipartBody.Part.createFormData("file", "upload.$ext", requestBody)
+
+        binding.btnAddPhoto.isClickable = false
+        RetrofitClient.imageUploadService.uploadImage(part)
+            .enqueue(object : Callback<ApiResponse<ImageUploadResponse>> {
+                override fun onResponse(
+                    call: Call<ApiResponse<ImageUploadResponse>>,
+                    response: Response<ApiResponse<ImageUploadResponse>>
+                ) {
+                    binding.btnAddPhoto.isClickable = true
+                    if (response.isSuccessful) {
+                        val url = response.body()?.data?.imageUrl ?: return
+                        uploadedImageUrls.clear()
+                        uploadedImageUrls.add(url)
+                        Glide.with(this@WorkoutFinishActivity).load(uri).into(binding.ivPreview)
+                        binding.ivPreview.visibility = View.VISIBLE
+                        binding.btnRemovePhoto.visibility = View.VISIBLE
+                    } else {
+                        Toast.makeText(this@WorkoutFinishActivity, "이미지 업로드 실패", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<ApiResponse<ImageUploadResponse>>, t: Throwable) {
+                    binding.btnAddPhoto.isClickable = true
+                    Toast.makeText(this@WorkoutFinishActivity, "네트워크 오류", Toast.LENGTH_SHORT).show()
+                }
+            })
     }
 
     private fun setupPainTagClear() {
@@ -163,7 +229,8 @@ class WorkoutFinishActivity : AppCompatActivity() {
             painRecords = painRecords,
             exercises = exerciseDtos,
             content = content,
-            workoutType = receivedWorkoutType
+            workoutType = receivedWorkoutType,
+            imageUrls = uploadedImageUrls.ifEmpty { null }
         )
 
         RetrofitClient.journalService.completeJournal(request)

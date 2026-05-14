@@ -50,7 +50,8 @@ data class CompleteJournalRequest(
     val painRecords: List<PainRecordDto>?,
     val exercises: List<ExerciseDto>,
     val content: String?,
-    val workoutType: String?
+    val workoutType: String?,
+    val imageUrls: List<String>?
 )
 
 data class JournalCreateResponse(

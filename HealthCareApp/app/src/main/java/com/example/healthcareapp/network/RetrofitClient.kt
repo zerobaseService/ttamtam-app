@@ -52,4 +52,8 @@ object RetrofitClient {
     val journalService: JournalApiService by lazy {
         retrofit.create(JournalApiService::class.java)
     }
+
+    val imageUploadService: ImageUploadApiService by lazy {
+        retrofit.create(ImageUploadApiService::class.java)
+    }
 }
