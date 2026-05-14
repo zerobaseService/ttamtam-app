@@ -59,6 +59,9 @@ public class WorkoutJournal {
     @Column(name = "content", length = 5000)
     private String content;
 
+    @Column(name = "workout_type", length = 20)
+    private String workoutType;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -115,6 +118,10 @@ public class WorkoutJournal {
 
     public void updateContent(String content) {
         this.content = content;
+    }
+
+    public void updateWorkoutType(String workoutType) {
+        this.workoutType = workoutType;
     }
 
     public void addExercise(WorkoutExercise exercise) {

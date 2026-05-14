@@ -259,14 +259,16 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="좌 팔꿈치:통증정도:3단계"
+                    android:text="통증 부위를 선택해주세요"
                     android:textColor="#94A3B8"
                     android:textSize="14sp" />
 
                 <ImageView
+                    android:id="@+id/btn_clear_pain"
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:src="@drawable/status_x"
+                    android:visibility="gone"
                     app:tint="#94A3B8" />
             </LinearLayout>
 
@@ -290,6 +292,7 @@
                 android:background="@drawable/bg_memo_input"
                 android:gravity="top"
                 android:hint="운동을 하면서 생긴 특이사항이나 피드백을\n작성해 공유해보세요"
+                android:inputType="textMultiLine"
                 android:lineSpacingExtra="4dp"
                 android:padding="16dp"
                 android:textColor="#475569"

@@ -115,6 +115,9 @@ public class JournalService {
 
         applyPostFinalize(journal, request.getPostCondition(), request.getPainRecords(),
                 request.getContent(), request.getImageUrls(), request.getTotalDurationSeconds());
+        if (request.getWorkoutType() != null) {
+            journal.updateWorkoutType(request.getWorkoutType());
+        }
 
         List<ExerciseDto> exercises = request.getExercises();
         if (exercises != null) {

@@ -30,6 +30,10 @@ class WorkoutExerciseActivity : AppCompatActivity() {
     private var isPtMode = false
     private var startTime: String = ""
 
+    private var journalId: Long = -1L
+    private var workoutDate: String = ""
+    private var startedAt: String = ""
+
     private val addExerciseLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -59,6 +63,10 @@ class WorkoutExerciseActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         startTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
+        journalId = intent.getLongExtra("JOURNAL_ID", -1L)
+        workoutDate = intent.getStringExtra("WORKOUT_DATE") ?: ""
+        startedAt = intent.getStringExtra("STARTED_AT") ?: ""
 
         setupRecyclerView()
         setupUI()
@@ -122,11 +130,15 @@ class WorkoutExerciseActivity : AppCompatActivity() {
         intent.putExtra("END_TIME", endTime)
 
         val workoutType = if (isPtMode) "PT" else "개인운동"
-        Log.d("JaehoonTest", "[전송직전] isPtMode: $isPtMode, 결정된 타입: $workoutType")
 
         intent.putExtra("WORKOUT_TYPE", workoutType)
+        intent.putExtra("JOURNAL_ID", journalId)
+        intent.putExtra("WORKOUT_DATE", workoutDate)
+        intent.putExtra("STARTED_AT", startedAt)
 
-        // ⭐ 반드시 finishResultLauncher로 실행해야 결과를 받아올 수 있습니다.
+        val currentList = if (isPtMode) ptWorkoutList else personalWorkoutList
+        intent.putExtra("EXERCISES", ArrayList(currentList))
+
         finishResultLauncher.launch(intent)
     }
 
@@ -135,8 +147,6 @@ class WorkoutExerciseActivity : AppCompatActivity() {
         binding.tvTabPersonal.setOnClickListener {
             if (isPtMode) {
                 isPtMode = false
-                // ⭐ 로그 2: 개인운동 탭 클릭 시 상태 변화 확인
-                Log.d("JaehoonTest", "[탭클릭] 개인운동 선택됨 (isPtMode: $isPtMode)")
                 updateTabUI()
                 switchListData()
             }
@@ -144,8 +154,6 @@ class WorkoutExerciseActivity : AppCompatActivity() {
         binding.tvTabPt.setOnClickListener {
             if (!isPtMode) {
                 isPtMode = true
-                // ⭐ 로그 3: PT 탭 클릭 시 상태 변화 확인
-                Log.d("JaehoonTest", "[탭클릭] PT 선택됨 (isPtMode: $isPtMode)")
                 updateTabUI()
                 switchListData()
             }

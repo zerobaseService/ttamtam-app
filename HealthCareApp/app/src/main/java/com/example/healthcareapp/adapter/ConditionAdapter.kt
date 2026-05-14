@@ -91,9 +91,7 @@ class ConditionAdapter(private val items: List<ConditionRecord>) :
         // ⭐ [추가] pain1 클릭 시 바텀시트 호출 (ItemCondition1Binding에 있으므로 여기서 처리)
         binding.pain1.setOnClickListener {
             if (context is FragmentActivity) {
-                val bottomSheet = PainBottomSheetFragment { result ->
-                    // 완료 후 "좌 팔꿈치:통증정도:3단계" 텍스트를 업데이트하거나 UI 처리를 하세요.
-                }
+                val bottomSheet = PainBottomSheetFragment("통증 부위") { _ -> }
                 bottomSheet.show(context.supportFragmentManager, "PainBottomSheet")
             }
         }
