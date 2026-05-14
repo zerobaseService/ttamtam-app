@@ -1,0 +1,41 @@
+[
+  {
+    "id": "Bench_Press",
+    "name": "Bench Press",
+    "force": "push",
+    "level": "beginner",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["chest"],
+    "secondaryMuscles": ["shoulders", "triceps"],
+    "instructions": ["Lie back on a flat bench.", "Grip the bar."],
+    "images": ["Bench_Press/0.jpg", "Bench_Press/1.jpg"],
+    "category": "strength"
+  },
+  {
+    "id": "Deadlift",
+    "name": "Deadlift",
+    "force": "pull",
+    "level": "intermediate",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["hamstrings"],
+    "secondaryMuscles": ["glutes", "lower back"],
+    "instructions": ["Stand with feet hip-width apart."],
+    "images": ["Deadlift/0.jpg"],
+    "category": "strength"
+  },
+  {
+    "id": "Squat",
+    "name": "Squat",
+    "force": "push",
+    "level": "beginner",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["quadriceps"],
+    "secondaryMuscles": ["glutes", "hamstrings"],
+    "instructions": ["Stand with feet shoulder-width apart."],
+    "images": [],
+    "category": "strength"
+  }
+]
