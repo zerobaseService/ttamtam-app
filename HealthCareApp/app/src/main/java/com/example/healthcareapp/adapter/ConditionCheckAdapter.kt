@@ -75,7 +75,7 @@ class ConditionCheckAdapter(
      */
     private fun setupQuestionText(binding: ItemConditionQuestionBinding, num: Int) {
         when (num) {
-            1 -> { binding.tvQuestionTitle.text = "운동 후 평소와 다른 관절이나\n근육 통증이 있었나요?"; binding.tvMinLabel.text = "매우 심함"; binding.tvMaxLabel.text = "통증 없음" }
+            1 -> { binding.tvQuestionTitle.text = "평소와 다른 관절/근육에\n통증이 있나요?"; binding.tvMinLabel.text = "매우 심함"; binding.tvMaxLabel.text = "통증 없음" }
             2 -> { binding.tvQuestionTitle.text = "오늘 수면 시간이 어떻게 되시나요?"; binding.tvMinLabel.text = "1시간"; binding.tvMaxLabel.text = "10시간" }
             3 -> { binding.tvQuestionTitle.text = "수면의 질은 어떠셨나요?"; binding.tvMinLabel.text = "거의 못 잠"; binding.tvMaxLabel.text = "매우 개운함" }
             4 -> { binding.tvQuestionTitle.text = "전 날 운동의 피로가 남아있나요?"; binding.tvMinLabel.text = "매우 많이 남아있음"; binding.tvMaxLabel.text = "전혀 없음" }

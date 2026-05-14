@@ -1,9 +1,10 @@
 package com.example.healthcareapp
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -12,18 +13,37 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.adapter.BodyPart
-import com.example.healthcareapp.adapter.ConditionCheckAdapter
 import com.example.healthcareapp.adapter.BodyPartAdapter
+import com.example.healthcareapp.adapter.ConditionCheckAdapter
+import com.example.healthcareapp.data.CreateJournalRequest
+import com.example.healthcareapp.data.PainRecord
+import com.example.healthcareapp.data.PainRecordDto
+import com.example.healthcareapp.data.PreConditionDto
+import com.example.healthcareapp.data.ApiResponse
+import com.example.healthcareapp.data.JournalCreateResponse
 import com.example.healthcareapp.data.StatusQuestion1
-import com.example.healthcareapp.fragment.DiaryMainFragment
-import com.example.healthcareapp.sheet.PainBottomSheetFragment // 바텀시트 임포트 확인
+import com.example.healthcareapp.network.RetrofitClient
+import com.example.healthcareapp.sheet.PainBottomSheetFragment
+import com.example.healthcareapp.util.BodyPartMapper
 import com.google.android.material.chip.ChipGroup
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ConditionCheckActivity : AppCompatActivity() {
 
     private lateinit var questionAdapter: ConditionCheckAdapter
     private lateinit var bodyPartAdapter: BodyPartAdapter
     private val questions = mutableListOf<StatusQuestion1>()
+
+    private var selectedPainRecord: PainRecord? = null
+    private var folderId: Long? = null
+
+    private lateinit var tvPainTagContent: TextView
+    private lateinit var btnClearPain: ImageView
 
     private val bodyDataMap = mapOf(
         "앞면" to mapOf(
@@ -48,51 +68,123 @@ class ConditionCheckActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.condition_check)
 
+        folderId = intent.getLongExtra("FOLDER_ID", -1L).takeIf { it != -1L }
+
+        tvPainTagContent = findViewById(R.id.tv_pain_tag_content)
+        btnClearPain = findViewById(R.id.btn_clear_pain)
+
         initData()
         setupQuestions()
         setupBodyParts()
-        setupPainTagClick()
+        setupPainTagClear()
         setupFinishButton()
+
+        findViewById<ImageView>(R.id.btn_close_condition).setOnClickListener { finish() }
     }
-    private fun setupFinishButton() {
-        val btnFinish = findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btn_finish_workout)
 
-        btnFinish.setOnClickListener {
-            // 1. 필요한 경우 여기서 서버에 데이터를 저장하는 로직을 먼저 실행합니다.
-            // saveConditionData()
-
-            // 2. DiaryActivity로 이동하는 Intent 생성
-            val intent = Intent(this, DiaryMainFragment::class.java)
-
-            // 3. 현재 액티비티를 스택에서 제거하고 이동 (뒤로가기 시 다시 체크화면으로 오지 않게 함)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-
-            startActivity(intent)
-
-            // 4. 완료 메시지 출력 및 현재 화면 종료
-//            Toast.makeText(this, "컨디션 체크가 완료되었습니다!", Toast.LENGTH_SHORT).show()
-            finish()
+    private fun setupPainTagClear() {
+        btnClearPain.setOnClickListener {
+            selectedPainRecord = null
+            updatePainTagUI()
         }
+    }
+
+    private fun updatePainTagUI() {
+        val record = selectedPainRecord
+        if (record != null) {
+            tvPainTagContent.text = "${record.side} ${record.bodyPartName} : ${record.painLevel}단계"
+            tvPainTagContent.setTextColor(Color.parseColor("#2D3A4B"))
+            btnClearPain.visibility = View.VISIBLE
+        } else {
+            tvPainTagContent.text = "통증 부위를 선택해주세요"
+            tvPainTagContent.setTextColor(Color.parseColor("#94A3B8"))
+            btnClearPain.visibility = View.GONE
+        }
+    }
+
+    private fun setupFinishButton() {
+        val btnFinish = findViewById<AppCompatButton>(R.id.btn_finish_workout)
+        btnFinish.setOnClickListener {
+            btnFinish.isEnabled = false
+            submitPreCondition(btnFinish)
+        }
+    }
+
+    private fun submitPreCondition(btnFinish: AppCompatButton) {
+        val scores = questions.map { it.score.toInt().coerceIn(1, 10) }
+        val preCondition = PreConditionDto(
+            jointMusclePain = scores[0],
+            sleepHours = scores[1],
+            sleepQuality = scores[2],
+            previousFatigue = scores[3],
+            overallCondition = scores[4]
+        )
+
+        val painRecords = selectedPainRecord?.let { record ->
+            listOf(PainRecordDto(
+                bodyPart = BodyPartMapper.toServerBodyPart(record.bodyPartName),
+                side = BodyPartMapper.toServerBodySide(record.side),
+                painLevel = record.painLevel
+            ))
+        }
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+        val now = Date()
+        val workoutDate = dateFormat.format(now)
+        val startedAt = dateTimeFormat.format(now)
+
+        val request = CreateJournalRequest(
+            workoutDate = workoutDate,
+            folderId = folderId,
+            preCondition = preCondition,
+            painRecords = painRecords,
+            startedAt = startedAt
+        )
+
+        RetrofitClient.journalService.createJournal(request)
+            .enqueue(object : Callback<ApiResponse<JournalCreateResponse>> {
+                override fun onResponse(
+                    call: Call<ApiResponse<JournalCreateResponse>>,
+                    response: Response<ApiResponse<JournalCreateResponse>>
+                ) {
+                    if (response.isSuccessful) {
+                        val journalId = response.body()?.data?.journalId
+                        navigateToWorkout(journalId, workoutDate, startedAt)
+                    } else {
+                        Toast.makeText(this@ConditionCheckActivity, "저장 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        btnFinish.isEnabled = true
+                    }
+                }
+
+                override fun onFailure(call: Call<ApiResponse<JournalCreateResponse>>, t: Throwable) {
+                    Toast.makeText(this@ConditionCheckActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    btnFinish.isEnabled = true
+                }
+            })
+    }
+
+    private fun navigateToWorkout(journalId: Long?, workoutDate: String, startedAt: String) {
+        val intent = Intent(this, WorkoutExerciseActivity::class.java).apply {
+            putExtra("JOURNAL_ID", journalId ?: -1L)
+            putExtra("WORKOUT_DATE", workoutDate)
+            putExtra("STARTED_AT", startedAt)
+            putExtra("FOLDER_ID", folderId ?: -1L)
+        }
+        startActivity(intent)
+        finish()
     }
 
     private fun initData() {
         questions.clear()
         for (i in 1..5) {
-            // 첫 번째 인자인 step에 맞춰 "i/5" 형식의 문자열을 넣어줍니다.
-            questions.add(
-                StatusQuestion1(
-                    step = "$i/5",
-                    title = "",
-                    score = 10f
-                )
-            )
+            questions.add(StatusQuestion1(step = "$i/5", title = "", score = 10f))
         }
     }
 
     private fun setupQuestions() {
         val rvStatus = findViewById<RecyclerView>(R.id.rv_status_questions)
         questionAdapter = ConditionCheckAdapter(questions)
-
         rvStatus.apply {
             layoutManager = LinearLayoutManager(this@ConditionCheckActivity)
             adapter = questionAdapter
@@ -119,9 +211,7 @@ class ConditionCheckActivity : AppCompatActivity() {
         }
 
         chipGroupBody.setOnCheckedStateChangeListener { _, checkedIds ->
-            if (checkedIds.isNotEmpty()) {
-                updateBodyPartList(chipGroupBody, rvBodyParts)
-            }
+            if (checkedIds.isNotEmpty()) updateBodyPartList(chipGroupBody, rvBodyParts)
         }
 
         rvBodyParts.layoutManager = LinearLayoutManager(this)
@@ -129,10 +219,8 @@ class ConditionCheckActivity : AppCompatActivity() {
     }
 
     private fun updateDirectionUI(front: AppCompatButton, back: AppCompatButton) {
-        // ⭐ R.color 값이 colors.xml에 있는지 확인하세요. 없으면 Color.parseColor("#... ") 사용
         val activeColor = ContextCompat.getColor(this, R.color.front_black)
         val inactiveColor = ContextCompat.getColor(this, R.color.back_gray)
-
         if (currentDirection == "앞면") {
             front.setBackgroundResource(R.drawable.bg_tab_selected)
             front.setTextColor(activeColor)
@@ -143,27 +231,6 @@ class ConditionCheckActivity : AppCompatActivity() {
             back.setTextColor(activeColor)
             front.setBackgroundResource(android.R.color.transparent)
             front.setTextColor(inactiveColor)
-        }
-    }
-    private fun setupPainTagClick() {
-        val painTagContainer = findViewById<LinearLayout>(R.id.layout_pain_tag_container)
-        val painTagText = findViewById<TextView>(R.id.tv_pain_tag_content)
-
-        painTagContainer.setOnClickListener {
-            // 이미 만들어두신 PainBottomSheetFragment 호출
-            val bottomSheet = PainBottomSheetFragment { result ->
-                // 바텀시트에서 '완료' 버튼을 눌렀을 때 실행될 로직
-                // 예: 선택된 텍스트를 태그에 반영하거나 토스트 메시지 출력
-                painTagText.text = result
-            }
-            bottomSheet.show(supportFragmentManager, "PainBottomSheet")
-        }
-
-        // 우측 'X' 아이콘( ImageView) 클릭 시 태그 초기화 로직 (선택 사항)
-        val btnRemoveTag = painTagContainer.getChildAt(1) as? ImageView
-        btnRemoveTag?.setOnClickListener {
-            painTagText.text = "기록된 통증이 없습니다"
-            // 필요한 경우 데이터 모델에서도 삭제 처리
         }
     }
 
@@ -178,17 +245,13 @@ class ConditionCheckActivity : AppCompatActivity() {
             else -> "머리/목"
         }
 
-        // 1. String 리스트 가져오기
         val stringList = bodyDataMap[currentDirection]?.get(bodyKey) ?: emptyList()
-
-        // 2. ⭐ 에러 해결: List<String>을 List<BodyPart>로 변환
         val detailList = stringList.map { BodyPart(it) }
 
-        // 3. ⭐ 에러 해결: 어댑터 생성 시 클릭 리스너 람다 추가
         bodyPartAdapter = BodyPartAdapter(detailList) { clickedPart ->
-            // 부위 클릭 시 바텀시트 띄우기
-            val bottomSheet = PainBottomSheetFragment { result ->
-                // 통증 기록 처리 로직
+            val bottomSheet = PainBottomSheetFragment(clickedPart.name) { painRecord ->
+                selectedPainRecord = painRecord
+                updatePainTagUI()
             }
             bottomSheet.show(supportFragmentManager, "PainBottomSheet")
         }

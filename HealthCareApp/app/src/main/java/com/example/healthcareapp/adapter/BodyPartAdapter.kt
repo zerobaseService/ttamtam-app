@@ -23,11 +23,9 @@ class BodyPartAdapter(private var parts: List<BodyPart>, private val onItemClick
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val part = parts[position]
 
-        // 1. binding을 통해 tvPartName에 접근 (언더바가 사라짐에 주의!)
         holder.binding.tvPartName.text = part.name
-
-        // 2. 만약 화살표 아이콘을 코드로 제어하고 싶다면
         holder.binding.ivArrow.setImageResource(R.drawable.arrowreverse)
+        holder.itemView.setOnClickListener { onItemClick(part) }
     }
     fun updateItems(newItems: List<BodyPart>) {
         this.parts = newItems
