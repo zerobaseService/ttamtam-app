@@ -49,11 +49,14 @@ public class JournalService {
     private final DiaryFolderRepository folderRepository;
     private final DiaryFolderMemberRepository memberRepository;
 
+    // [일지 시작] 운동 전 상태(preCondition + PRE 통증)만 기록하고 저장한다.
+    // 운동이 끝나면 completeByLookup()에서 POST 데이터를 채워 완성한다.
     @Transactional
     public CreateJournalResponse createJournal(Long userId, CreateJournalRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
 
+        // 폴더가 지정된 경우 활성 멤버인지 확인 (탈퇴·CLOSED 폴더면 FORBIDDEN)
         if (request.getFolderId() != null) {
             DiaryFolder folder = folderRepository.findById(request.getFolderId())
                     .orElseThrow(() -> new CoreException(ErrorCode.FOLDER_NOT_FOUND));
@@ -69,9 +72,11 @@ public class JournalService {
                 .startedAt(request.getStartedAt())
                 .build();
 
+        // 운동 전 컨디션(피로도·수면 등)을 preCondition 엔티티로 묶어 연결
         JournalPreCondition pre = JournalPreCondition.of(journal, request.getPreCondition());
         journal.setPreCondition(pre);
 
+        // 운동 전 통증 기록 (timing = PRE)
         List<PainRecordDto> painRecords = request.getPainRecords();
         if (painRecords != null) {
             for (PainRecordDto dto : painRecords) {
@@ -88,6 +93,9 @@ public class JournalService {
         return new CreateJournalResponse(saved.getId(), saved.getCreatedAt());
     }
 
+    // [일지 완료] 운동 후 POST 데이터(컨디션·운동 기록·이미지 등)를 채워 일지를 완성한다.
+    // 같은 날 PRE-only 일지가 있으면 그것을 재사용하고, 없으면 새 일지를 즉시 생성한다.
+    // (createJournal을 건너뛰고 운동 완료 시점에 한 번에 저장하는 경우를 지원하기 위함)
     @Transactional
     public JournalDetailDto completeByLookup(Long userId, CompleteJournalRequest request) {
         User user = userRepository.findById(userId)
@@ -101,6 +109,7 @@ public class JournalService {
                     .orElseThrow(() -> new CoreException(ErrorCode.FORBIDDEN));
         }
 
+        // 해당 날짜의 미완료(PRE-only) 일지를 조회 → 없으면 빈 일지 신규 생성
         WorkoutJournal journal = journalRepository
                 .findFirstPreOnlyJournal(userId, request.getWorkoutDate())
                 .orElseGet(() -> {
@@ -113,12 +122,14 @@ public class JournalService {
                     return journalRepository.save(newJournal);
                 });
 
+        // POST 공통 필드(컨디션·통증·내용·이미지·총 운동 시간)를 일괄 적용
         applyPostFinalize(journal, request.getPostCondition(), request.getPainRecords(),
                 request.getContent(), request.getImageUrls(), request.getTotalDurationSeconds());
         if (request.getWorkoutType() != null) {
             journal.updateWorkoutType(request.getWorkoutType());
         }
 
+        // 운동 종목과 세트 기록 추가 (displayOrder 기준으로 정렬 표시됨)
         List<ExerciseDto> exercises = request.getExercises();
         if (exercises != null) {
             for (ExerciseDto exerciseDto : exercises) {
@@ -142,6 +153,8 @@ public class JournalService {
         return new JournalDetailDto(journal);
     }
 
+    // completeByLookup의 POST 공통 처리를 분리한 내부 헬퍼.
+    // postCondition은 별도 테이블이라 명시적 save()가 필요 (cascade 미적용)
     private void applyPostFinalize(WorkoutJournal journal, PostConditionDto postCondition,
                                    List<PainRecordDto> painRecords, String content,
                                    List<String> imageUrls, Integer totalDurationSeconds) {
@@ -154,6 +167,7 @@ public class JournalService {
             journal.updateContent(content);
         }
 
+        // 운동 후 통증 기록 (timing = POST)
         if (painRecords != null) {
             for (PainRecordDto dto : painRecords) {
                 journal.addPainRecord(JournalPainRecord.builder()
@@ -165,6 +179,7 @@ public class JournalService {
             }
         }
 
+        // 이미지 순서는 리스트 인덱스를 displayOrder로 사용
         if (imageUrls != null) {
             for (int i = 0; i < imageUrls.size(); i++) {
                 journal.addAttachment(JournalAttachment.builder()
@@ -175,6 +190,8 @@ public class JournalService {
         }
     }
 
+    // [일지 목록 조회] date(단일 날짜) 또는 from~to(범위) 또는 전체 중 하나만 선택 가능.
+    // CLOSED 폴더의 일지는 필터링해 노출하지 않는다 (폴더 정책 준수).
     @Transactional(readOnly = true)
     public List<JournalSummaryDto> getMyJournals(Long userId, LocalDate date, LocalDate from, LocalDate to) {
         if (date != null && (from != null || to != null)) {
@@ -199,6 +216,7 @@ public class JournalService {
             journals = journalRepository.findByAuthorIdOrderByWorkoutDateDescCreatedAtDesc(userId);
         }
 
+        // 폴더 없는 일지는 항상 노출, 폴더 있는 일지는 해당 폴더가 활성 상태일 때만 노출
         return journals.stream()
                 .filter(j -> {
                     if (j.getFolderId() == null) return true;
@@ -218,6 +236,8 @@ public class JournalService {
         return new JournalDetailDto(journal);
     }
 
+    // 소프트 딜리트: DB에서 실제 삭제하지 않고 deleted_at을 마킹한다 (복구 가능성 유지)
+    // 폴더 멤버여도 타인의 일지는 삭제 불가 — 작성자 본인만 허용
     @Transactional
     public void deleteJournal(Long userId, Long journalId) {
         WorkoutJournal journal = journalRepository.findById(journalId)
@@ -228,6 +248,7 @@ public class JournalService {
         journalRepository.softDeleteById(journalId);
     }
 
+    // [일지 수정] null이 아닌 필드만 선택적으로 업데이트 (PATCH 방식)
     @Transactional
     public JournalDetailDto updateJournal(Long userId, Long journalId, UpdateJournalRequest request) {
         WorkoutJournal journal = journalRepository.findById(journalId)
@@ -237,6 +258,7 @@ public class JournalService {
         return new JournalDetailDto(journal);
     }
 
+    // 실제로 변경된 필드가 하나라도 있을 때만 touch()로 updatedAt을 갱신한다
     private void applyUpdate(WorkoutJournal journal, UpdateJournalRequest request) {
         boolean changed = false;
         if (request.getPreCondition() != null) {
@@ -316,6 +338,8 @@ public class JournalService {
         }
     }
 
+    // 접근 권한 검사: 폴더 일지는 CLOSED 폴더면 차단, 작성자 또는 활성 폴더 멤버면 허용.
+    // 폴더 없는 일지는 작성자 본인만 접근 가능.
     private void verifyJournalAccess(WorkoutJournal journal, Long userId) {
         if (journal.getFolderId() != null) {
             DiaryFolder folder = folderRepository.findById(journal.getFolderId())
