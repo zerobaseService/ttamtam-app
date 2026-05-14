@@ -24,6 +24,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+        ex.getBindingResult().getFieldErrors()
+                .forEach(e -> log.warn("Validation 실패 - field: {}, value: {}, message: {}", e.getField(), e.getRejectedValue(), e.getDefaultMessage()));
+        ex.getBindingResult().getGlobalErrors()
+                .forEach(e -> log.warn("Validation 실패 (global) - object: {}, message: {}", e.getObjectName(), e.getDefaultMessage()));
         String message = ex.getBindingResult().getFieldErrors().isEmpty()
                 ? ex.getBindingResult().getAllErrors().get(0).getDefaultMessage()
                 : ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();

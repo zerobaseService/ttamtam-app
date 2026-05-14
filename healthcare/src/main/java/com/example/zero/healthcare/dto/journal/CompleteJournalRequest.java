@@ -1,5 +1,6 @@
 package com.example.zero.healthcare.dto.journal;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -20,9 +21,11 @@ import java.util.List;
 public class CompleteJournalRequest {
 
     @NotNull @PastOrPresent
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate workoutDate;
 
     @NotNull @PastOrPresent
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startedAt;
 
     @PositiveOrZero
@@ -41,6 +44,9 @@ public class CompleteJournalRequest {
 
     @Size(max = 5000)
     private String content;
+
+    @Size(max = 20)
+    private String workoutType;
 
     @Size(max = 5, message = "이미지는 최대 5개까지 첨부 가능합니다.")
     private List<@URL @Size(max = 1024) String> imageUrls;
