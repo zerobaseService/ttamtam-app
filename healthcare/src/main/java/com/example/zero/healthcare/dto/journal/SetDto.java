@@ -21,4 +21,7 @@ public class SetDto {
 
     @DecimalMin("0.0")
     private BigDecimal weightKg;
+
+    @Min(0)
+    private Integer durationMinutes;
 }

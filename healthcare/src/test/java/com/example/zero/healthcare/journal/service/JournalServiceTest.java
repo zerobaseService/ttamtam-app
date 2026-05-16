@@ -11,6 +11,7 @@ import com.example.zero.healthcare.Entity.journal.JournalPreCondition;
 import com.example.zero.healthcare.Entity.journal.PainTiming;
 import com.example.zero.healthcare.Entity.User;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
+import com.example.zero.healthcare.Entity.journal.WorkoutSet;
 import com.example.zero.healthcare.dto.journal.CompleteJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalRequest;
 import com.example.zero.healthcare.dto.journal.CreateJournalResponse;
@@ -219,7 +220,7 @@ class JournalServiceTest {
         given(journalRepository.findByAuthorIdAndWorkoutDateOrderByCreatedAtDesc(1L, date))
                 .willReturn(List.of());
 
-        List<JournalSummaryDto> result = journalService.getMyJournals(1L, date, null, null);
+        List<JournalSummaryDto> result = journalService.getMyJournals(1L, date, null, null, null, false);
 
         assertThat(result).isEmpty();
         verify(journalRepository).findByAuthorIdAndWorkoutDateOrderByCreatedAtDesc(1L, date);
@@ -234,7 +235,7 @@ class JournalServiceTest {
         given(journalRepository.findByAuthorIdAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(1L, from, to))
                 .willReturn(List.of());
 
-        List<JournalSummaryDto> result = journalService.getMyJournals(1L, null, from, to);
+        List<JournalSummaryDto> result = journalService.getMyJournals(1L, null, from, to, null, false);
 
         assertThat(result).isEmpty();
         verify(journalRepository).findByAuthorIdAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(1L, from, to);
@@ -247,7 +248,7 @@ class JournalServiceTest {
         LocalDate from = LocalDate.of(2026, 4, 1);
         LocalDate to = LocalDate.of(2026, 4, 30);
 
-        assertThatThrownBy(() -> journalService.getMyJournals(1L, date, from, to))
+        assertThatThrownBy(() -> journalService.getMyJournals(1L, date, from, to, null, false))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -257,7 +258,43 @@ class JournalServiceTest {
         LocalDate from = LocalDate.of(2026, 4, 30);
         LocalDate to = LocalDate.of(2026, 4, 1);
 
-        assertThatThrownBy(() -> journalService.getMyJournals(1L, null, from, to))
+        assertThatThrownBy(() -> journalService.getMyJournals(1L, null, from, to, null, false))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("folderId 지정 조회는 폴더 스코프 Repository 메서드를 호출한다")
+    void getMyJournals_folderIdSpecified_callsFolderScopedRepository() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        given(folderRepository.findById(10L)).willReturn(Optional.of(DiaryFolder.create("test folder")));
+        LocalDate date = LocalDate.of(2026, 4, 20);
+        given(journalRepository.findByAuthorIdAndFolderIdAndWorkoutDateOrderByCreatedAtDesc(1L, 10L, date))
+                .willReturn(List.of());
+
+        List<JournalSummaryDto> result = journalService.getMyJournals(1L, date, null, null, 10L, false);
+
+        assertThat(result).isEmpty();
+        verify(journalRepository).findByAuthorIdAndFolderIdAndWorkoutDateOrderByCreatedAtDesc(1L, 10L, date);
+    }
+
+    @Test
+    @DisplayName("unfiled=true 조회는 folderId IS NULL 스코프 Repository 메서드를 호출한다")
+    void getMyJournals_unfiledTrue_callsUnfiledRepository() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        LocalDate date = LocalDate.of(2026, 4, 20);
+        given(journalRepository.findByAuthorIdAndFolderIdIsNullAndWorkoutDateOrderByCreatedAtDesc(1L, date))
+                .willReturn(List.of());
+
+        List<JournalSummaryDto> result = journalService.getMyJournals(1L, date, null, null, null, true);
+
+        assertThat(result).isEmpty();
+        verify(journalRepository).findByAuthorIdAndFolderIdIsNullAndWorkoutDateOrderByCreatedAtDesc(1L, date);
+    }
+
+    @Test
+    @DisplayName("folderId와 unfiled를 동시 지정하면 IllegalArgumentException을 던진다")
+    void getMyJournals_folderIdAndUnfiledTogether_throwsIllegalArgument() {
+        assertThatThrownBy(() -> journalService.getMyJournals(1L, null, null, null, 10L, true))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -531,6 +568,97 @@ class JournalServiceTest {
         verify(journalRepository).save(captor.capture());
         assertThat(captor.getValue().getExercises()).hasSize(1);
         assertThat(captor.getValue().getExercises().get(0).getExerciseName()).isEqualTo("스쿼트");
+    }
+
+    @Test
+    @DisplayName("소수점 무게(0.5kg)가 WorkoutSet에 정확히 저장된다")
+    void completeByLookup_fractionalWeight_savesPrecisely() {
+        User user = new User("a@b.com", "t", "n");
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate())).willReturn(Optional.empty());
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        ExerciseDto exerciseDto = new ExerciseDto();
+        exerciseDto.setExerciseName("덤벨 컬");
+        exerciseDto.setDisplayOrder(1);
+        SetDto setDto = new SetDto();
+        setDto.setSetNumber(1);
+        setDto.setReps(12);
+        setDto.setWeightKg(new BigDecimal("0.5"));
+        exerciseDto.setSets(List.of(setDto));
+
+        CompleteJournalRequest req = new CompleteJournalRequest();
+        req.setWorkoutDate(validDate());
+        req.setPostCondition(validPostCondition());
+        req.setExercises(List.of(exerciseDto));
+
+        journalService.completeByLookup(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        WorkoutSet savedSet = captor.getValue().getExercises().get(0).getSets().get(0);
+        assertThat(savedSet.getWeightKg()).isEqualByComparingTo(new BigDecimal("0.5"));
+    }
+
+    @Test
+    @DisplayName("Cardio 운동의 durationMinutes는 WorkoutSet에 별도 필드로 저장된다")
+    void completeByLookup_cardioExercise_savesDurationMinutes() {
+        User user = new User("a@b.com", "t", "n");
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate())).willReturn(Optional.empty());
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        ExerciseDto exerciseDto = new ExerciseDto();
+        exerciseDto.setExerciseName("트레드밀");
+        exerciseDto.setDisplayOrder(1);
+        SetDto setDto = new SetDto();
+        setDto.setSetNumber(1);
+        setDto.setReps(0);
+        setDto.setWeightKg(BigDecimal.ZERO);
+        setDto.setDurationMinutes(30);
+        exerciseDto.setSets(List.of(setDto));
+
+        CompleteJournalRequest req = new CompleteJournalRequest();
+        req.setWorkoutDate(validDate());
+        req.setPostCondition(validPostCondition());
+        req.setExercises(List.of(exerciseDto));
+
+        journalService.completeByLookup(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        WorkoutSet savedSet = captor.getValue().getExercises().get(0).getSets().get(0);
+        assertThat(savedSet.getDurationMinutes()).isEqualTo(30);
+    }
+
+    @Test
+    @DisplayName("일반 운동의 durationMinutes는 null로 저장된다")
+    void completeByLookup_strengthExercise_durationMinutesIsNull() {
+        User user = new User("a@b.com", "t", "n");
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(journalRepository.findFirstPreOnlyJournal(1L, validDate())).willReturn(Optional.empty());
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        ExerciseDto exerciseDto = new ExerciseDto();
+        exerciseDto.setExerciseName("스쿼트");
+        exerciseDto.setDisplayOrder(1);
+        SetDto setDto = new SetDto();
+        setDto.setSetNumber(1);
+        setDto.setReps(10);
+        setDto.setWeightKg(new BigDecimal("80.0"));
+        exerciseDto.setSets(List.of(setDto));
+
+        CompleteJournalRequest req = new CompleteJournalRequest();
+        req.setWorkoutDate(validDate());
+        req.setPostCondition(validPostCondition());
+        req.setExercises(List.of(exerciseDto));
+
+        journalService.completeByLookup(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        WorkoutSet savedSet = captor.getValue().getExercises().get(0).getSets().get(0);
+        assertThat(savedSet.getDurationMinutes()).isNull();
     }
 
     @Test

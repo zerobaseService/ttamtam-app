@@ -1026,4 +1026,183 @@ class JournalControllerTest {
                 .andExpect(jsonPath("$.data.exercises[0].exerciseName").value("스쿼트"))
                 .andExpect(jsonPath("$.data.exercises[0].sets[0].reps").value(10));
     }
+
+    // ─── GET /api/journals 폴더 필터 ──────────────────────────────────────────
+
+    @Test
+    @DisplayName("folderId 지정 시 해당 폴더의 일지만 반환한다")
+    void getJournals_withFolderId_returnsOnlyThatFolder() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+        User user = userRepository.findById(userId).orElseThrow();
+        memberRepository.save(DiaryFolderMember.join(folder, user));
+
+        String bodyWithFolder = """
+                {"workoutDate": "2026-04-20", "startedAt": "2026-04-20T09:00:00",
+                 "folderId": %d,
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""".formatted(folder.getId());
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithFolder))
+                .andExpect(status().isCreated());
+
+        String bodyNoFolder = """
+                {"workoutDate": "2026-04-21", "startedAt": "2026-04-21T09:00:00",
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""";
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyNoFolder))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .param("folderId", folder.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("unfiled=true 시 폴더 없는 일지만 반환한다")
+    void getJournals_withUnfiledTrue_returnsOnlyNullFolderJournals() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+        User user = userRepository.findById(userId).orElseThrow();
+        memberRepository.save(DiaryFolderMember.join(folder, user));
+
+        String bodyWithFolder = """
+                {"workoutDate": "2026-04-20", "startedAt": "2026-04-20T09:00:00",
+                 "folderId": %d,
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""".formatted(folder.getId());
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithFolder))
+                .andExpect(status().isCreated());
+
+        String bodyNoFolder = """
+                {"workoutDate": "2026-04-21", "startedAt": "2026-04-21T09:00:00",
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""";
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyNoFolder))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .param("unfiled", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("folderId와 unfiled를 동시 지정하면 400을 반환한다")
+    void getJournals_folderIdAndUnfiledTogether_returns400() throws Exception {
+        mockMvc.perform(get("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .param("folderId", "1")
+                        .param("unfiled", "true"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @DisplayName("date와 folderId를 함께 지정하면 해당 폴더의 해당 날짜 일지만 반환한다")
+    void getJournals_withDateAndFolderId_returnsFilteredByBoth() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+        User user = userRepository.findById(userId).orElseThrow();
+        memberRepository.save(DiaryFolderMember.join(folder, user));
+
+        String body1 = """
+                {"workoutDate": "2026-04-20", "startedAt": "2026-04-20T09:00:00",
+                 "folderId": %d,
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""".formatted(folder.getId());
+        String body2 = """
+                {"workoutDate": "2026-04-21", "startedAt": "2026-04-21T09:00:00",
+                 "folderId": %d,
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""".formatted(folder.getId());
+
+        mockMvc.perform(post("/api/journals").header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body1)).andExpect(status().isCreated());
+        mockMvc.perform(post("/api/journals").header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body2)).andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .param("date", "2026-04-20")
+                        .param("folderId", folder.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].workoutDate").value("2026-04-20"));
+    }
+
+    @Test
+    @DisplayName("date와 unfiled=true를 함께 지정하면 해당 날짜의 폴더 없는 일지만 반환한다")
+    void getJournals_withDateAndUnfiled_returnsFilteredByBoth() throws Exception {
+        String body1 = """
+                {"workoutDate": "2026-04-20", "startedAt": "2026-04-20T09:00:00",
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""";
+        String body2 = """
+                {"workoutDate": "2026-04-21", "startedAt": "2026-04-21T09:00:00",
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""";
+
+        mockMvc.perform(post("/api/journals").header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body1)).andExpect(status().isCreated());
+        mockMvc.perform(post("/api/journals").header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body2)).andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .param("date", "2026-04-20")
+                        .param("unfiled", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].workoutDate").value("2026-04-20"));
+    }
+
+    @Test
+    @DisplayName("CLOSED 폴더 folderId로 조회 시 빈 배열을 반환한다")
+    void getJournals_folderIdOfClosedFolder_returnsEmpty() throws Exception {
+        DiaryFolder folder = folderRepository.save(DiaryFolder.create("test folder"));
+        User user = userRepository.findById(userId).orElseThrow();
+        memberRepository.save(DiaryFolderMember.join(folder, user));
+
+        String body = """
+                {"workoutDate": "2026-04-20", "startedAt": "2026-04-20T09:00:00",
+                 "folderId": %d,
+                 "preCondition": {"jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                   "previousFatigue": 4, "overallCondition": 8}, "painRecords": []}""".formatted(folder.getId());
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated());
+
+        folder.close();
+        folderRepository.save(folder);
+
+        mockMvc.perform(get("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .param("folderId", folder.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
 }

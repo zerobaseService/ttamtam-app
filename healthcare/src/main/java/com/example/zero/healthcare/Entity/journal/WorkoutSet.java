@@ -38,11 +38,15 @@ public class WorkoutSet {
     @Column(name = "weight_kg", nullable = false, precision = 6, scale = 2)
     private BigDecimal weightKg;
 
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes;
+
     @Builder
-    public WorkoutSet(Integer setNumber, Integer reps, BigDecimal weightKg) {
+    public WorkoutSet(Integer setNumber, Integer reps, BigDecimal weightKg, Integer durationMinutes) {
         this.setNumber = setNumber;
         this.reps = reps;
         this.weightKg = weightKg;
+        this.durationMinutes = durationMinutes;
     }
 
     void setExercise(WorkoutExercise exercise) {

@@ -55,14 +55,16 @@ public class JournalController {
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
-    @Operation(summary = "사용자 일지 목록 조회 (date 또는 from+to로 필터링 가능)")
+    @Operation(summary = "사용자 일지 목록 조회 (date/from+to 날짜 필터, folderId 또는 unfiled=true 폴더 필터 가능. folderId와 unfiled 동시 지정 불가)")
     @GetMapping
     public ResponseEntity<ApiResponse<List<JournalSummaryDto>>> getMyJournals(
             @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        List<JournalSummaryDto> data = journalService.getMyJournals(userId, date, from, to);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long folderId,
+            @RequestParam(required = false, defaultValue = "false") boolean unfiled) {
+        List<JournalSummaryDto> data = journalService.getMyJournals(userId, date, from, to, folderId, unfiled);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
