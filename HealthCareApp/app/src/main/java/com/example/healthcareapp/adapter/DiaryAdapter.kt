@@ -57,4 +57,10 @@ class DiaryAdapter(
     }
 
     override fun getItemCount() = items.size
+
+    fun updateData(newItems: List<DiaryItem>) {
+        items.clear()
+        items.addAll(newItems)
+        notifyDataSetChanged()
+    }
 }

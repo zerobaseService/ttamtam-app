@@ -215,14 +215,19 @@ class DiaryListActivity : AppCompatActivity() {
 
         // 작동 중인 플로팅 타이머 바 클릭 시 현재 진행 중인 운동 화면으로 복귀
         layoutFloatingTimer.setOnClickListener {
-            val intent = Intent(this, WorkoutExerciseActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT) // 기존 스택의 액티비티를 앞으로 가져옴
+//            val intent = Intent(this, WorkoutExerciseActivity::class.java)
+//            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+//            startActivity(intent)
+            val intent = Intent(this, WorkoutSessionActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             startActivity(intent)
         }
 
         // 새 운동 시작 버튼
         fabStartWorkout.setOnClickListener {
-            val intent = Intent(this, WorkoutExerciseActivity::class.java)
+//            val intent = Intent(this, WorkoutExerciseActivity::class.java)
+//            workoutResultLauncher.launch(intent)
+            val intent = Intent(this, WorkoutSessionActivity::class.java)
             workoutResultLauncher.launch(intent)
         }
     }

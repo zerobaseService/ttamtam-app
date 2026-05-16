@@ -40,7 +40,7 @@ class RecordWorkoutAdapter(private val items: MutableList<ExerciseRecord>) :
             btnAddSet.setOnClickListener {
                 Log.d("DEBUG_WORKOUT", "세트 추가 클릭됨: ${item.name}")
                 val nextSetNum = item.sets.size + 1
-                item.sets.add(ExerciseSet(nextSetNum, 0, 0))
+                item.sets.add(ExerciseSet(nextSetNum, 0.0, 0))
 
                 // 자식 어댑터에게 데이터 변경 알림
                 setAdapter.notifyDataSetChanged()

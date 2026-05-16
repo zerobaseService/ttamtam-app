@@ -15,9 +15,11 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.R
+import com.example.healthcareapp.ConditionCheckActivity
 import com.example.healthcareapp.WorkoutActivity
 import com.example.healthcareapp.WorkoutExerciseActivity
 import com.example.healthcareapp.WorkoutFinishActivity
+import com.example.healthcareapp.WorkoutSessionActivity
 import com.example.healthcareapp.adapter.DayAdapter
 import com.example.healthcareapp.adapter.DiaryAdapter
 import com.example.healthcareapp.data.DayItem
@@ -226,13 +228,18 @@ class DiaryListFragment : Fragment() {
             applyFilterAndSort(nextFilter)
         }
         fabStartWorkout.setOnClickListener {
-            val intent = Intent(requireContext(), WorkoutExerciseActivity::class.java).apply {
-                putExtra("IS_SHARED_MODE", isSharedMode)
-            }
+//            val intent = Intent(requireContext(), WorkoutExerciseActivity::class.java).apply {
+//                putExtra("IS_SHARED_MODE", isSharedMode)
+//            }
+//            workoutResultLauncher.launch(intent)
+            val intent = Intent(requireContext(), WorkoutSessionActivity::class.java)
             workoutResultLauncher.launch(intent)
         }
         layoutFloatingTimer.setOnClickListener {
-            val intent = Intent(requireContext(), WorkoutExerciseActivity::class.java)
+//            val intent = Intent(requireContext(), WorkoutExerciseActivity::class.java)
+//            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+//            startActivity(intent)
+            val intent = Intent(requireContext(), WorkoutSessionActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             startActivity(intent)
         }

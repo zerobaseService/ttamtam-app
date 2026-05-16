@@ -20,6 +20,7 @@ public class JournalSummaryDto {
     private final boolean postRecorded;
     private final Integer preOverallCondition;
     private final String contentPreview;
+    private final String workoutType;
 
     public JournalSummaryDto(WorkoutJournal journal) {
         this.journalId = journal.getId();
@@ -30,5 +31,6 @@ public class JournalSummaryDto {
                 ? journal.getPreCondition().getOverallCondition() : null;
         String c = journal.getContent();
         this.contentPreview = (c != null && c.length() > 100) ? c.substring(0, 100) : c;
+        this.workoutType = journal.getWorkoutType();
     }
 }
