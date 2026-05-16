@@ -1,6 +1,7 @@
 package com.example.zero.healthcare.dto.journal;
 
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -10,7 +11,11 @@ import java.time.LocalDateTime;
 public class JournalSummaryDto {
 
     private final Long journalId;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private final LocalDate workoutDate;
+
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private final LocalDateTime createdAt;
     private final boolean postRecorded;
     private final Integer preOverallCondition;
