@@ -8,50 +8,72 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.data.ExerciseSet
 import com.example.healthcareapp.databinding.ItemWorkoutSetInputBinding
 
-/**
- * 특정 운동의 '세트' 정보(세트 번호, 무게, 횟수)를 입력받는 리사이클러뷰 어댑터
- */
-class WorkoutSetAdapter(private val sets: MutableList<ExerciseSet>) :
+class WorkoutSetAdapter(private var sets: MutableList<ExerciseSet>) :
     RecyclerView.Adapter<WorkoutSetAdapter.SetViewHolder>() {
 
-    // ViewBinding을 사용하여 아이템 레이아웃 홀딩
-    inner class SetViewHolder(val binding: ItemWorkoutSetInputBinding) : RecyclerView.ViewHolder(binding.root)
+    class SetViewHolder(val binding: ItemWorkoutSetInputBinding) : RecyclerView.ViewHolder(binding.root) {
+        var weightWatcher: TextWatcher? = null
+        var repsWatcher: TextWatcher? = null
+    }
+
+    // 다른 exercise로 교체될 때만 notifyDataSetChanged 호출 (같은 list 재bind 시 생략)
+    fun replaceSets(newSets: MutableList<ExerciseSet>) {
+        if (sets !== newSets) {
+            sets = newSets
+            notifyDataSetChanged()
+        }
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SetViewHolder {
-        // item_workout_set_input.xml 레이아웃 인플레이트
         val binding = ItemWorkoutSetInputBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return SetViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: SetViewHolder, position: Int) {
+        // 기존 watcher 제거 (ViewHolder 재활용 시 오염 방지)
+        holder.binding.etWeight.removeTextChangedListener(holder.weightWatcher)
+        holder.binding.etReps.removeTextChangedListener(holder.repsWatcher)
+
         val set = sets[position]
-        holder.binding.apply {
+        holder.binding.tvSetNumber.text = "${set.setNumber}"
+        holder.binding.etWeight.setText(
+            if (set.weight == 0.0) "" else set.weight.toBigDecimal().stripTrailingZeros().toPlainString()
+        )
+        holder.binding.etReps.setText(if (set.reps == 0) "" else "${set.reps}")
 
-            // 1. [데이터 반영] 현재 세트 정보 표시
-            tvSetNumber.text = "${set.setNumber}"
-            // 값이 0일 경우 사용자가 입력하기 편하도록 빈 칸으로 표시
-            etWeight.setText(if (set.weight == 0.0) "" else set.weight.toBigDecimal().stripTrailingZeros().toPlainString())
-            etReps.setText(if (set.reps == 0) "" else "${set.reps}")
-
-            // 2. [실시간 데이터 동기화] 무게(Weight) 입력 감지
-            etWeight.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    // 입력값이 숫자가 아닐 경우 0으로 처리하여 에러 방지
-                    set.weight = s.toString().toDoubleOrNull() ?: 0.0
+        // adapterPosition 기반으로 현재 bind된 위치의 set을 수정 (recycling 시 오염 방지)
+        holder.weightWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val pos = holder.adapterPosition
+                if (pos != RecyclerView.NO_POSITION && pos < sets.size) {
+                    sets[pos].weight = s.toString().toDoubleOrNull() ?: 0.0
                 }
-                override fun afterTextChanged(s: Editable?) {}
-            })
-
-            // 3. [실시간 데이터 동기화] 횟수(Reps) 입력 감지
-            etReps.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    set.reps = s.toString().toIntOrNull() ?: 0
-                }
-                override fun afterTextChanged(s: Editable?) {}
-            })
+            }
+            override fun afterTextChanged(s: Editable?) {}
         }
+        holder.repsWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val pos = holder.adapterPosition
+                if (pos != RecyclerView.NO_POSITION && pos < sets.size) {
+                    sets[pos].reps = s.toString().toIntOrNull() ?: 0
+                }
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        }
+
+        holder.binding.etWeight.addTextChangedListener(holder.weightWatcher)
+        holder.binding.etReps.addTextChangedListener(holder.repsWatcher)
+    }
+
+    // RecycledViewPool으로 반환될 때 watcher 완전 제거
+    override fun onViewRecycled(holder: SetViewHolder) {
+        super.onViewRecycled(holder)
+        holder.binding.etWeight.removeTextChangedListener(holder.weightWatcher)
+        holder.binding.etReps.removeTextChangedListener(holder.repsWatcher)
+        holder.weightWatcher = null
+        holder.repsWatcher = null
     }
 
     override fun getItemCount(): Int = sets.size

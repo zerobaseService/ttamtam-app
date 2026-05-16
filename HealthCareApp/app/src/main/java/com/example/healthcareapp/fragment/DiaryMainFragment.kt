@@ -203,7 +203,8 @@ class DiaryMainFragment : Fragment() {
                         startActivity(intent)
                     },
                     onExerciseStartClick = {
-                        (activity as? HomeActivity)?.moveToDiaryList(folderId, folderName, isSharedMode)
+                        val intent = Intent(requireContext(), WorkoutSessionActivity::class.java)
+                        startActivity(intent)
                     }
                 ).show(parentFragmentManager, "AddEntrySheet")
             }
