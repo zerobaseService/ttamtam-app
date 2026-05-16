@@ -30,7 +30,7 @@ class WorkoutSetAdapter(private val sets: MutableList<ExerciseSet>) :
             // 1. [데이터 반영] 현재 세트 정보 표시
             tvSetNumber.text = "${set.setNumber}"
             // 값이 0일 경우 사용자가 입력하기 편하도록 빈 칸으로 표시
-            etWeight.setText(if (set.weight == 0) "" else "${set.weight}")
+            etWeight.setText(if (set.weight == 0.0) "" else set.weight.toBigDecimal().stripTrailingZeros().toPlainString())
             etReps.setText(if (set.reps == 0) "" else "${set.reps}")
 
             // 2. [실시간 데이터 동기화] 무게(Weight) 입력 감지
@@ -38,7 +38,7 @@ class WorkoutSetAdapter(private val sets: MutableList<ExerciseSet>) :
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                     // 입력값이 숫자가 아닐 경우 0으로 처리하여 에러 방지
-                    set.weight = s.toString().toIntOrNull() ?: 0
+                    set.weight = s.toString().toDoubleOrNull() ?: 0.0
                 }
                 override fun afterTextChanged(s: Editable?) {}
             })

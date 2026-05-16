@@ -206,7 +206,8 @@ class WorkoutFinishActivity : AppCompatActivity() {
                     ExerciseSetDto(
                         setNumber = set.setNumber,
                         reps = set.reps,
-                        weightKg = set.weight.toDouble()
+                        weightKg = set.weight,
+                        durationMinutes = set.durationMinutes.takeIf { it > 0 }
                     )
                 }
             )

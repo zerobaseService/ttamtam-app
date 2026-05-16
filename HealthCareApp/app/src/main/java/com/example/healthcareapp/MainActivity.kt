@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("273956393814-8q7knfjqnrrlnvihtgbbucj2rar9uojg.apps.googleusercontent.com") // Firebase 연동 시 자동 생성되는 ID
+            .requestIdToken("603320176823-n5g6pg9a42qi2dobligutvqcdpef8ej3.apps.googleusercontent.com")
             .requestEmail()
             .build()
 
@@ -129,6 +129,7 @@ class MainActivity : ComponentActivity() {
                     val email = user?.email ?: ""
                     saveUserEmail(email)
                     val intent = Intent(this, LoadingActivity::class.java).apply {
+                        putExtra("ID_TOKEN", idToken)
                         putExtra("USER_EMAIL", email)
                         putExtra("USER_NAME", user?.displayName ?: "")
                     }

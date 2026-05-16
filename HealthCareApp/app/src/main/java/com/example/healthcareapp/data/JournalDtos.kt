@@ -25,7 +25,8 @@ data class PainRecordDto(
 data class ExerciseSetDto(
     val setNumber: Int,
     val reps: Int,
-    val weightKg: Double
+    val weightKg: Double,
+    val durationMinutes: Int? = null
 )
 
 data class ExerciseDto(
@@ -57,4 +58,14 @@ data class CompleteJournalRequest(
 data class JournalCreateResponse(
     val journalId: Long,
     val createdAt: String
+)
+
+data class JournalSummaryResponse(
+    val journalId: Long,
+    val workoutDate: String,
+    val createdAt: String,
+    val postRecorded: Boolean,
+    val preOverallCondition: Int?,
+    val contentPreview: String?,
+    val workoutType: String?
 )

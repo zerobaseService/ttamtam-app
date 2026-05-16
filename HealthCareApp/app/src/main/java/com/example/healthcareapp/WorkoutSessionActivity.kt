@@ -4,28 +4,27 @@ import WorkoutFinishDialog
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.healthcareapp.adapter.RecordWorkoutAdapter
-import com.example.healthcareapp.databinding.ActivityWorkoutStartBinding
+import com.example.healthcareapp.adapter.WorkoutSessionAdapter
 import com.example.healthcareapp.data.ExerciseRecord
 import com.example.healthcareapp.data.ExerciseSet
+import com.example.healthcareapp.data.WorkoutSessionExercise
+import com.example.healthcareapp.data.WorkoutSessionSet
+import com.example.healthcareapp.databinding.ActivityWorkoutSessionBinding
 import com.example.healthcareapp.utils.TimerManager
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
-/**
- * 실제 운동을 기록하는 화면 (타이머, 세트 기록, 운동 추가)
- */
-class WorkoutExerciseActivity : AppCompatActivity() {
+class WorkoutSessionActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityWorkoutStartBinding
-    private lateinit var workoutAdapter: RecordWorkoutAdapter
+    private lateinit var binding: ActivityWorkoutSessionBinding
+    private lateinit var workoutSessionAdapter: WorkoutSessionAdapter
 
-    private val personalWorkoutList = mutableListOf<ExerciseRecord>()
-    private val ptWorkoutList = mutableListOf<ExerciseRecord>()
+    private val personalWorkoutList = mutableListOf<WorkoutSessionExercise>()
+    private val ptWorkoutList = mutableListOf<WorkoutSessionExercise>()
 
     private var isPtMode = false
     private var startTime: String = ""
@@ -34,19 +33,27 @@ class WorkoutExerciseActivity : AppCompatActivity() {
     private var workoutDate: String = ""
     private var startedAt: String = ""
 
+    private val currentList get() = if (isPtMode) ptWorkoutList else personalWorkoutList
+
     private val addExerciseLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val names = result.data?.getStringArrayExtra("exercise_names")
-            names?.forEach { name -> addNewExercise(name) }
+            val ids = result.data?.getStringArrayExtra("exercise_ids")
+            val bodyParts = result.data?.getStringArrayExtra("exercise_body_parts")
+            names?.forEachIndexed { index, name ->
+                val id = ids?.getOrNull(index) ?: ""
+                val bodyPart = bodyParts?.getOrNull(index) ?: ""
+                addNewExercise(name, id, bodyPart)
+            }
         }
     }
+
     private val finishResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            TimerManager.stopTimer()
             setResult(Activity.RESULT_OK, result.data)
             finish()
         }
@@ -54,7 +61,7 @@ class WorkoutExerciseActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityWorkoutStartBinding.inflate(layoutInflater)
+        binding = ActivityWorkoutSessionBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         startTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
@@ -76,7 +83,7 @@ class WorkoutExerciseActivity : AppCompatActivity() {
         binding.btnClose.setOnClickListener { finish() }
 
         binding.btnAddWorkout.setOnClickListener {
-            val intent = Intent(this, AddExerciseActivity::class.java)
+            val intent = Intent(this, AddExerciseSessionActivity::class.java)
             intent.putExtra("IS_PT_MODE", isPtMode)
             addExerciseLauncher.launch(intent)
         }
@@ -125,14 +132,13 @@ class WorkoutExerciseActivity : AppCompatActivity() {
         intent.putExtra("END_TIME", endTime)
 
         val workoutType = if (isPtMode) "PT" else "개인운동"
-
         intent.putExtra("WORKOUT_TYPE", workoutType)
         intent.putExtra("JOURNAL_ID", journalId)
         intent.putExtra("WORKOUT_DATE", workoutDate)
         intent.putExtra("STARTED_AT", startedAt)
 
-        val currentList = if (isPtMode) ptWorkoutList else personalWorkoutList
-        intent.putExtra("EXERCISES", ArrayList(currentList))
+        val exercises = ArrayList(currentList.toExerciseRecords())
+        intent.putExtra("EXERCISES", exercises)
 
         finishResultLauncher.launch(intent)
     }
@@ -143,14 +149,14 @@ class WorkoutExerciseActivity : AppCompatActivity() {
             if (isPtMode) {
                 isPtMode = false
                 updateTabUI()
-                switchListData()
+                refreshAdapter()
             }
         }
         binding.tvTabPt.setOnClickListener {
             if (!isPtMode) {
                 isPtMode = true
                 updateTabUI()
-                switchListData()
+                refreshAdapter()
             }
         }
     }
@@ -166,37 +172,59 @@ class WorkoutExerciseActivity : AppCompatActivity() {
             binding.tvTabPersonal.paint.isFakeBoldText = true
             binding.tvTabPt.paint.isFakeBoldText = false
         }
-        binding.btnAddWorkout.text = "+ 운동 추가하기"
-    }
-
-    private fun switchListData() {
-        val currentList = if (isPtMode) ptWorkoutList else personalWorkoutList
-        workoutAdapter = RecordWorkoutAdapter(currentList)
-        binding.rvWorkoutList.adapter = workoutAdapter
-        binding.rvWorkoutList.scheduleLayoutAnimation()
     }
 
     private fun setupRecyclerView() {
-        workoutAdapter = RecordWorkoutAdapter(personalWorkoutList)
+        workoutSessionAdapter = WorkoutSessionAdapter(currentList, ::onDeleteExercise)
         binding.rvWorkoutList.apply {
-            layoutManager = LinearLayoutManager(this@WorkoutExerciseActivity)
-            adapter = workoutAdapter
+            layoutManager = LinearLayoutManager(this@WorkoutSessionActivity)
+            adapter = workoutSessionAdapter
         }
     }
 
-    private fun addNewExercise(name: String) {
-        val currentList = if (isPtMode) ptWorkoutList else personalWorkoutList
-        val newWorkout = ExerciseRecord(
-            id = currentList.size + 1,
+    private fun refreshAdapter() {
+        workoutSessionAdapter = WorkoutSessionAdapter(currentList, ::onDeleteExercise)
+        binding.rvWorkoutList.adapter = workoutSessionAdapter
+        binding.rvWorkoutList.scheduleLayoutAnimation()
+    }
+
+    private fun onDeleteExercise(position: Int) {
+        currentList.removeAt(position)
+        workoutSessionAdapter.notifyItemRemoved(position)
+    }
+
+    private fun addNewExercise(name: String, id: String, bodyPart: String) {
+        val isCardio = bodyPart.lowercase() == "cardio"
+        val initialSets = if (isCardio) {
+            mutableListOf(WorkoutSessionSet(setNumber = 1))
+        } else {
+            mutableListOf(WorkoutSessionSet(setNumber = 1))
+        }
+        val newExercise = WorkoutSessionExercise(
+            id = id,
             name = name,
-            sets = mutableListOf(ExerciseSet(setNumber = 1, weight = 0.0, reps = 0))
+            bodyPart = bodyPart,
+            sets = initialSets
         )
-        currentList.add(newWorkout)
-        workoutAdapter.notifyItemInserted(currentList.size - 1)
+        currentList.add(newExercise)
+        workoutSessionAdapter.notifyItemInserted(currentList.size - 1)
         binding.rvWorkoutList.scrollToPosition(currentList.size - 1)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun List<WorkoutSessionExercise>.toExerciseRecords(): List<ExerciseRecord> {
+        return mapIndexed { index, exercise ->
+            val isCardio = exercise.bodyPart.lowercase() == "cardio"
+            ExerciseRecord(
+                id = index + 1,
+                name = exercise.name,
+                sets = exercise.sets.map { set ->
+                    if (isCardio) {
+                        ExerciseSet(set.setNumber, weight = 0.0, reps = 0, durationMinutes = set.durationMinutes)
+                    } else {
+                        ExerciseSet(set.setNumber, weight = set.weight, reps = set.reps)
+                    }
+                }.toMutableList()
+            )
+        }
     }
 }

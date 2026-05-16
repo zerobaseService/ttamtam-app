@@ -19,7 +19,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class AddExerciseActivity : AppCompatActivity() {
+class AddExerciseSessionActivity : AppCompatActivity() {
     private lateinit var binding: AddExerciseBinding
     private lateinit var adapter: ExerciseAddAdapter
     private var allExercises: List<ExerciseItem> = listOf()
@@ -35,11 +35,15 @@ class AddExerciseActivity : AppCompatActivity() {
         loadExercisesFromApi()
 
         binding.btnSelectExercise.setOnClickListener {
-            val selectedExercises = adapter.getSelectedItems()
+            val selectedExercises = adapter.getSelectedItems().toList()
             if (selectedExercises.isNotEmpty()) {
                 val selectedNames = selectedExercises.map { it.name }.toTypedArray()
+                val selectedIds = selectedExercises.map { it.id }.toTypedArray()
+                val selectedBodyParts = selectedExercises.map { it.bodyPart }.toTypedArray()
                 val intent = android.content.Intent().apply {
                     putExtra("exercise_names", selectedNames)
+                    putExtra("exercise_ids", selectedIds)
+                    putExtra("exercise_body_parts", selectedBodyParts)
                 }
                 setResult(Activity.RESULT_OK, intent)
                 finish()
@@ -78,19 +82,19 @@ class AddExerciseActivity : AppCompatActivity() {
                             adapter.updateList(allExercises)
                         }
                         401, 403 -> {
-                            Toast.makeText(this@AddExerciseActivity,
+                            Toast.makeText(this@AddExerciseSessionActivity,
                                 "로그인이 필요합니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
                             finish()
                         }
-                        404 -> Toast.makeText(this@AddExerciseActivity,
+                        404 -> Toast.makeText(this@AddExerciseSessionActivity,
                             "운동 목록을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
-                        else -> Toast.makeText(this@AddExerciseActivity,
+                        else -> Toast.makeText(this@AddExerciseSessionActivity,
                             "서버 오류가 발생했습니다. (${response.code()})", Toast.LENGTH_SHORT).show()
                     }
                 }
 
                 override fun onFailure(call: Call<ApiResponse<List<ExerciseSummaryDto>>>, t: Throwable) {
-                    Toast.makeText(this@AddExerciseActivity,
+                    Toast.makeText(this@AddExerciseSessionActivity,
                         "네트워크 연결을 확인해주세요.", Toast.LENGTH_SHORT).show()
                 }
             })
@@ -112,17 +116,17 @@ class AddExerciseActivity : AppCompatActivity() {
                         }
                         adapter.updateFavoriteState(exerciseId, newState)
                     }
-                    401, 403 -> Toast.makeText(this@AddExerciseActivity,
+                    401, 403 -> Toast.makeText(this@AddExerciseSessionActivity,
                         "즐겨찾기 권한이 없습니다.", Toast.LENGTH_SHORT).show()
-                    404 -> Toast.makeText(this@AddExerciseActivity,
+                    404 -> Toast.makeText(this@AddExerciseSessionActivity,
                         "해당 운동을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
-                    else -> Toast.makeText(this@AddExerciseActivity,
+                    else -> Toast.makeText(this@AddExerciseSessionActivity,
                         "즐겨찾기 처리에 실패했습니다. (${response.code()})", Toast.LENGTH_SHORT).show()
                 }
             }
 
             override fun onFailure(call: Call<Void>, t: Throwable) {
-                Toast.makeText(this@AddExerciseActivity,
+                Toast.makeText(this@AddExerciseSessionActivity,
                     "네트워크 오류로 즐겨찾기를 변경할 수 없습니다.", Toast.LENGTH_SHORT).show()
             }
         })
@@ -184,7 +188,7 @@ class AddExerciseActivity : AppCompatActivity() {
 
     private fun updateBottomButton(count: Int) {
         binding.btnSelectExercise.apply {
-            val tf = ResourcesCompat.getFont(this@AddExerciseActivity, R.font.pretendard)
+            val tf = ResourcesCompat.getFont(this@AddExerciseSessionActivity, R.font.pretendard)
             typeface = tf
             if (count > 0) {
                 text = "+ ${count}개의 운동 추가하기"

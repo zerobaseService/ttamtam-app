@@ -15,6 +15,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.App.Starting"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="31">
         <activity
             android:name=".SplashActivity"
@@ -106,6 +107,14 @@
             android:exported="false" />
         <activity
             android:name=".ConditionCheckActivity"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
+            android:exported="false" />
+        <activity
+            android:name=".WorkoutSessionActivity"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
+            android:exported="false" />
+        <activity
+            android:name=".AddExerciseSessionActivity"
             android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
             android:exported="false" />
     </application>

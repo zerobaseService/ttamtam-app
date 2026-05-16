@@ -94,14 +94,14 @@ class SetAdapter(private val sets: MutableList<ExerciseSet>) :
         // 2. UI 데이터 설정
         holder.tvSetNum.text = "${set.setNumber} "
         // 값이 0이면 빈칸으로 보여주어 사용자 입력을 편하게 유도
-        holder.etWeight.setText(if (set.weight == 0) "" else set.weight.toString())
+        holder.etWeight.setText(if (set.weight == 0.0) "" else set.weight.toBigDecimal().stripTrailingZeros().toPlainString())
         holder.etReps.setText(if (set.reps == 0) "" else set.reps.toString())
 
         // 3. 새로운 리스너(TextWatcher) 정의
         holder.weightWatcher = object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 // 입력값을 실시간으로 데이터 모델(ExerciseSet)에 저장
-                set.weight = s.toString().toIntOrNull() ?: 0
+                set.weight = s.toString().toDoubleOrNull() ?: 0.0
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}

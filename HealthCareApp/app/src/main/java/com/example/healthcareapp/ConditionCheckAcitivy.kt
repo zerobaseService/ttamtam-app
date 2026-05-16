@@ -165,7 +165,13 @@ class ConditionCheckActivity : AppCompatActivity() {
     }
 
     private fun navigateToWorkout(journalId: Long?, workoutDate: String, startedAt: String) {
-        val intent = Intent(this, WorkoutExerciseActivity::class.java).apply {
+//        val intent = Intent(this, WorkoutExerciseActivity::class.java).apply {
+//            putExtra("JOURNAL_ID", journalId ?: -1L)
+//            putExtra("WORKOUT_DATE", workoutDate)
+//            putExtra("STARTED_AT", startedAt)
+//            putExtra("FOLDER_ID", folderId ?: -1L)
+//        }
+        val intent = Intent(this, WorkoutSessionActivity::class.java).apply {
             putExtra("JOURNAL_ID", journalId ?: -1L)
             putExtra("WORKOUT_DATE", workoutDate)
             putExtra("STARTED_AT", startedAt)

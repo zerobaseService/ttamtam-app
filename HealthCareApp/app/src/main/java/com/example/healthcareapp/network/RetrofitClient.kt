@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val BASE_URL = "https://ttamtam.duckdns.org/"
 
     var tokenProvider: (() -> String?) = { null }
 
@@ -55,5 +55,9 @@ object RetrofitClient {
 
     val imageUploadService: ImageUploadApiService by lazy {
         retrofit.create(ImageUploadApiService::class.java)
+    }
+
+    val exerciseService: ExerciseApiService by lazy {
+        retrofit.create(ExerciseApiService::class.java)
     }
 }
