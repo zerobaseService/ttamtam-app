@@ -20,6 +20,24 @@ public interface JournalRepository extends JpaRepository<WorkoutJournal, Long> {
     List<WorkoutJournal> findByAuthorIdAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(
             Long authorId, LocalDate from, LocalDate to);
 
+    // folderId 지정 케이스
+    List<WorkoutJournal> findByAuthorIdAndFolderIdOrderByWorkoutDateDescCreatedAtDesc(Long authorId, Long folderId);
+
+    List<WorkoutJournal> findByAuthorIdAndFolderIdAndWorkoutDateOrderByCreatedAtDesc(
+            Long authorId, Long folderId, LocalDate workoutDate);
+
+    List<WorkoutJournal> findByAuthorIdAndFolderIdAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(
+            Long authorId, Long folderId, LocalDate from, LocalDate to);
+
+    // unfiled (folderId IS NULL) 케이스
+    List<WorkoutJournal> findByAuthorIdAndFolderIdIsNullOrderByWorkoutDateDescCreatedAtDesc(Long authorId);
+
+    List<WorkoutJournal> findByAuthorIdAndFolderIdIsNullAndWorkoutDateOrderByCreatedAtDesc(
+            Long authorId, LocalDate workoutDate);
+
+    List<WorkoutJournal> findByAuthorIdAndFolderIdIsNullAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(
+            Long authorId, LocalDate from, LocalDate to);
+
     @Query("SELECT j FROM WorkoutJournal j LEFT JOIN j.postCondition pc " +
            "WHERE j.authorId = :authorId AND j.workoutDate = :date AND pc IS NULL " +
            "ORDER BY j.createdAt DESC")
