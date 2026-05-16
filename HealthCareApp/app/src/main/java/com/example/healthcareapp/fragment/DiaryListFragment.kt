@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,7 +15,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.R
 import com.example.healthcareapp.ConditionCheckActivity
-import com.example.healthcareapp.WorkoutActivity
 import com.example.healthcareapp.WorkoutExerciseActivity
 import com.example.healthcareapp.WorkoutFinishActivity
 import com.example.healthcareapp.WorkoutSessionActivity
@@ -147,17 +145,7 @@ class DiaryListFragment : Fragment() {
             setHasFixedSize(true)
         }
 
-        // ⭐ 2. 일지 클릭 시 상세 화면으로 데이터 전달 (EMOJI_RES_ID 포함)
-        diaryAdapter = DiaryAdapter(displayList, { item ->
-            Log.d("JaehoonTest", "상세화면 이동 - 보낼 색상 ID: ${item.emojiResId}")
-            val intent = Intent(requireContext(), WorkoutActivity::class.java).apply {
-                putExtra("SELECT_TAB", 1)
-                putExtra("DIARY_DATE", item.date)
-                putExtra("EMOJI_RES_ID", item.emojiResId) // ✅ 저장된 색상 그대로 전달
-                putExtra("DIARY_ID", item.id)
-            }
-            startActivity(intent)
-        }, { position -> })
+        diaryAdapter = DiaryAdapter(displayList, { _ -> }, { position -> })
 
         rvDiaryList.apply {
             layoutManager = LinearLayoutManager(requireContext())

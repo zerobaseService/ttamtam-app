@@ -33,6 +33,7 @@ class JournalSummaryDtoSerializationTest {
         when(journal.isCompleted()).thenReturn(false);
         when(journal.getPreCondition()).thenReturn(null);
         when(journal.getContent()).thenReturn(null);
+        when(journal.getWorkoutType()).thenReturn("개인운동");
         return journal;
     }
 
@@ -62,5 +63,25 @@ class JournalSummaryDtoSerializationTest {
         JsonNode node = objectMapper.readTree(objectMapper.writeValueAsString(dto));
 
         assertThat(node.get("createdAt").isTextual()).isTrue();
+    }
+
+    @Test
+    @DisplayName("workoutType이 있으면 해당 값이 직렬화된다")
+    void workoutType_serializesWhenPresent() throws Exception {
+        JournalSummaryDto dto = new JournalSummaryDto(stubJournal());
+        JsonNode node = objectMapper.readTree(objectMapper.writeValueAsString(dto));
+
+        assertThat(node.get("workoutType").asText()).isEqualTo("개인운동");
+    }
+
+    @Test
+    @DisplayName("workoutType이 null이면 null로 직렬화된다")
+    void workoutType_serializesNullWhenAbsent() throws Exception {
+        WorkoutJournal journal = stubJournal();
+        when(journal.getWorkoutType()).thenReturn(null);
+        JournalSummaryDto dto = new JournalSummaryDto(journal);
+        JsonNode node = objectMapper.readTree(objectMapper.writeValueAsString(dto));
+
+        assertThat(node.get("workoutType").isNull()).isTrue();
     }
 }
