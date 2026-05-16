@@ -143,6 +143,7 @@ public class JournalService {
                                 .setNumber(setDto.getSetNumber())
                                 .reps(setDto.getReps())
                                 .weightKg(setDto.getWeightKg())
+                                .durationMinutes(setDto.getDurationMinutes())
                                 .build());
                     }
                 }
@@ -191,9 +192,13 @@ public class JournalService {
     }
 
     // [일지 목록 조회] date(단일 날짜) 또는 from~to(범위) 또는 전체 중 하나만 선택 가능.
-    // CLOSED 폴더의 일지는 필터링해 노출하지 않는다 (폴더 정책 준수).
+    // folderId 지정 시 해당 폴더만, unfiled=true 시 폴더 없는 일지만, 둘 다 없으면 전체(CLOSED 제외).
     @Transactional(readOnly = true)
-    public List<JournalSummaryDto> getMyJournals(Long userId, LocalDate date, LocalDate from, LocalDate to) {
+    public List<JournalSummaryDto> getMyJournals(Long userId, LocalDate date, LocalDate from, LocalDate to,
+                                                  Long folderId, boolean unfiled) {
+        if (folderId != null && unfiled) {
+            throw new IllegalArgumentException("folderId와 unfiled를 동시에 지정할 수 없습니다.");
+        }
         if (date != null && (from != null || to != null)) {
             throw new IllegalArgumentException("date와 from/to를 동시에 지정할 수 없습니다.");
         }
@@ -208,22 +213,47 @@ public class JournalService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
 
         List<WorkoutJournal> journals;
-        if (date != null) {
-            journals = journalRepository.findByAuthorIdAndWorkoutDateOrderByCreatedAtDesc(userId, date);
-        } else if (from != null) {
-            journals = journalRepository.findByAuthorIdAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(userId, from, to);
+        if (folderId != null) {
+            // folderId 지정: CLOSED 폴더면 빈 리스트 반환
+            DiaryFolder folder = folderRepository.findById(folderId).orElse(null);
+            if (folder == null || !folder.isActive()) return List.of();
+            if (date != null) {
+                journals = journalRepository.findByAuthorIdAndFolderIdAndWorkoutDateOrderByCreatedAtDesc(userId, folderId, date);
+            } else if (from != null) {
+                journals = journalRepository.findByAuthorIdAndFolderIdAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(userId, folderId, from, to);
+            } else {
+                journals = journalRepository.findByAuthorIdAndFolderIdOrderByWorkoutDateDescCreatedAtDesc(userId, folderId);
+            }
+        } else if (unfiled) {
+            // unfiled: folderId IS NULL 일지만
+            if (date != null) {
+                journals = journalRepository.findByAuthorIdAndFolderIdIsNullAndWorkoutDateOrderByCreatedAtDesc(userId, date);
+            } else if (from != null) {
+                journals = journalRepository.findByAuthorIdAndFolderIdIsNullAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(userId, from, to);
+            } else {
+                journals = journalRepository.findByAuthorIdAndFolderIdIsNullOrderByWorkoutDateDescCreatedAtDesc(userId);
+            }
         } else {
-            journals = journalRepository.findByAuthorIdOrderByWorkoutDateDescCreatedAtDesc(userId);
+            // 전체 조회: CLOSED 폴더 필터링
+            if (date != null) {
+                journals = journalRepository.findByAuthorIdAndWorkoutDateOrderByCreatedAtDesc(userId, date);
+            } else if (from != null) {
+                journals = journalRepository.findByAuthorIdAndWorkoutDateBetweenOrderByWorkoutDateDescCreatedAtDesc(userId, from, to);
+            } else {
+                journals = journalRepository.findByAuthorIdOrderByWorkoutDateDescCreatedAtDesc(userId);
+            }
+            return journals.stream()
+                    .filter(j -> {
+                        if (j.getFolderId() == null) return true;
+                        return folderRepository.findById(j.getFolderId())
+                                .map(DiaryFolder::isActive)
+                                .orElse(false);
+                    })
+                    .map(JournalSummaryDto::new)
+                    .collect(Collectors.toList());
         }
 
-        // 폴더 없는 일지는 항상 노출, 폴더 있는 일지는 해당 폴더가 활성 상태일 때만 노출
         return journals.stream()
-                .filter(j -> {
-                    if (j.getFolderId() == null) return true;
-                    return folderRepository.findById(j.getFolderId())
-                            .map(DiaryFolder::isActive)
-                            .orElse(false);
-                })
                 .map(JournalSummaryDto::new)
                 .collect(Collectors.toList());
     }

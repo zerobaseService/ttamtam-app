@@ -11,10 +11,12 @@ public class SetResponseDto {
     private final Integer setNumber;
     private final Integer reps;
     private final BigDecimal weightKg;
+    private final Integer durationMinutes;
 
     public SetResponseDto(WorkoutSet set) {
         this.setNumber = set.getSetNumber();
         this.reps = set.getReps();
         this.weightKg = set.getWeightKg();
+        this.durationMinutes = set.getDurationMinutes();
     }
 }
