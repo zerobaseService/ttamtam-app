@@ -142,8 +142,8 @@ class JournalServiceTest {
         given(journalRepository.save(any())).willReturn(stubSavedJournal(validDate()));
 
         List<PainRecordDto> records = List.of(
-                new PainRecordDto("SHOULDER", "LEFT", 7),
-                new PainRecordDto("KNEE", "RIGHT", 4)
+                PainRecordDto.of("SHOULDER", "LEFT", 5),
+                PainRecordDto.of("KNEE", "RIGHT", 4)
         );
         CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), records, null);
         journalService.createJournal(1L, req);
@@ -208,6 +208,55 @@ class JournalServiceTest {
 
         assertThat(response).isNotNull();
         verify(journalRepository).save(any(WorkoutJournal.class));
+    }
+
+    @Test
+    @DisplayName("createJournal은 painReason을 JournalPainRecord에 저장한다")
+    void createJournal_persistsPainReason() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        List<PainRecordDto> records = List.of(PainRecordDto.of("SHOULDER", "LEFT", 5, "운동 전 결림"));
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), records, null);
+        journalService.createJournal(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        assertThat(captor.getValue().getPainRecords().get(0).getPainReason()).isEqualTo("운동 전 결림");
+    }
+
+    @Test
+    @DisplayName("createJournal은 painReason이 null인 경우도 저장한다")
+    void createJournal_persistsNullPainReason() {
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User("a@b.com", "t", "n")));
+        given(journalRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        List<PainRecordDto> records = List.of(PainRecordDto.of("SHOULDER", "LEFT", 5));
+        CreateJournalRequest req = new CreateJournalRequest(validDate(), null, validPreCondition(), records, null);
+        journalService.createJournal(1L, req);
+
+        ArgumentCaptor<WorkoutJournal> captor = ArgumentCaptor.forClass(WorkoutJournal.class);
+        verify(journalRepository).save(captor.capture());
+        assertThat(captor.getValue().getPainRecords().get(0).getPainReason()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateJournal — replacePainRecords 경로에서 painReason을 교체 저장한다")
+    void updateJournal_replacesPainReason() {
+        WorkoutJournal journal = stubJournalWithBoth();
+        given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
+
+        UpdateJournalRequest req = new UpdateJournalRequest();
+        req.setPostPainRecords(List.of(PainRecordDto.of("KNEE", "RIGHT", 2, "달리기 후 통증")));
+
+        journalService.updateJournal(1L, 1L, req);
+
+        assertThat(journal.getPainRecords().stream()
+                .filter(r -> r.getTiming() == PainTiming.POST)
+                .findFirst()
+                .map(JournalPainRecord::getPainReason)
+                .orElse(null))
+                .isEqualTo("달리기 후 통증");
     }
 
     // ─── getMyJournals ───────────────────────────────────────────────────────
@@ -673,7 +722,7 @@ class JournalServiceTest {
         CompleteJournalRequest req = new CompleteJournalRequest();
         req.setWorkoutDate(validDate());
         req.setPostCondition(validPostCondition());
-        req.setPainRecords(List.of(new PainRecordDto("KNEE", "RIGHT", 4)));
+        req.setPainRecords(List.of(PainRecordDto.of("KNEE", "RIGHT", 4)));
 
         journalService.completeByLookup(1L, req);
 
@@ -1013,7 +1062,7 @@ class JournalServiceTest {
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
         UpdateJournalRequest req = new UpdateJournalRequest();
-        req.setPrePainRecords(List.of(new PainRecordDto("SHOULDER", "LEFT", 5)));
+        req.setPrePainRecords(List.of(PainRecordDto.of("SHOULDER", "LEFT", 5)));
 
         assertThatThrownBy(() -> journalService.updateJournal(1L, 1L, req))
                 .isInstanceOf(CoreException.class)
@@ -1029,7 +1078,7 @@ class JournalServiceTest {
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
         UpdateJournalRequest req = new UpdateJournalRequest();
-        req.setPrePainRecords(List.of(new PainRecordDto("SHOULDER", "LEFT", 7)));
+        req.setPrePainRecords(List.of(PainRecordDto.of("SHOULDER", "LEFT", 5)));
 
         journalService.updateJournal(1L, 1L, req);
 
@@ -1046,7 +1095,7 @@ class JournalServiceTest {
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
         UpdateJournalRequest req = new UpdateJournalRequest();
-        req.setPostPainRecords(List.of(new PainRecordDto("KNEE", "RIGHT", 4)));
+        req.setPostPainRecords(List.of(PainRecordDto.of("KNEE", "RIGHT", 4)));
 
         assertThatThrownBy(() -> journalService.updateJournal(1L, 1L, req))
                 .isInstanceOf(CoreException.class)
@@ -1062,7 +1111,7 @@ class JournalServiceTest {
         given(journalRepository.findById(1L)).willReturn(Optional.of(journal));
 
         UpdateJournalRequest req = new UpdateJournalRequest();
-        req.setPostPainRecords(List.of(new PainRecordDto("KNEE", "RIGHT", 3)));
+        req.setPostPainRecords(List.of(PainRecordDto.of("KNEE", "RIGHT", 3)));
 
         journalService.updateJournal(1L, 1L, req);
 
@@ -1080,8 +1129,8 @@ class JournalServiceTest {
 
         UpdateJournalRequest req = new UpdateJournalRequest();
         req.setPrePainRecords(List.of(
-                new PainRecordDto("SHOULDER", "LEFT", 5),
-                new PainRecordDto("SHOULDER", "LEFT", 7)
+                PainRecordDto.of("SHOULDER", "LEFT", 5),
+                PainRecordDto.of("SHOULDER", "LEFT", 5)
         ));
 
         assertThatThrownBy(() -> journalService.updateJournal(1L, 1L, req))
@@ -1193,8 +1242,8 @@ class JournalServiceTest {
         req.setContent("전체 수정");
         req.setPreCondition(new PreConditionDto(1, 1, 1, 1, 1));
         req.setPostCondition(validPostCondition());
-        req.setPrePainRecords(List.of(new PainRecordDto("SHOULDER", "LEFT", 5)));
-        req.setPostPainRecords(List.of(new PainRecordDto("KNEE", "RIGHT", 3)));
+        req.setPrePainRecords(List.of(PainRecordDto.of("SHOULDER", "LEFT", 5)));
+        req.setPostPainRecords(List.of(PainRecordDto.of("KNEE", "RIGHT", 3)));
         req.setImageUrls(List.of("https://cdn.ttamtam.app/img.jpg"));
 
         JournalDetailDto result = journalService.updateJournal(1L, 1L, req);

@@ -74,7 +74,7 @@ class JournalRepositoryTest {
         WorkoutJournal journal = buildJournal(user.getId());
 
         journal.addPainRecord(JournalPainRecord.builder()
-                .timing(PainTiming.PRE).bodyPart(BodyPart.SHOULDER).side(BodySide.LEFT).painLevel(7).build());
+                .timing(PainTiming.PRE).bodyPart(BodyPart.SHOULDER).side(BodySide.LEFT).painLevel(5).build());
         journal.addPainRecord(JournalPainRecord.builder()
                 .timing(PainTiming.PRE).bodyPart(BodyPart.KNEE).side(BodySide.RIGHT).painLevel(4).build());
 

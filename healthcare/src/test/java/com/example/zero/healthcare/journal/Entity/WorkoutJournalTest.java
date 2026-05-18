@@ -192,7 +192,7 @@ class WorkoutJournalTest {
         journal.addPainRecord(postRecord);
 
         JournalPainRecord newPreRecord = JournalPainRecord.builder()
-                .timing(PainTiming.PRE).bodyPart(BodyPart.KNEE).side(BodySide.LEFT).painLevel(7).build();
+                .timing(PainTiming.PRE).bodyPart(BodyPart.KNEE).side(BodySide.LEFT).painLevel(5).build();
         journal.replacePainRecords(PainTiming.PRE, List.of(newPreRecord));
 
         assertThat(journal.getPainRecords()).hasSize(2);

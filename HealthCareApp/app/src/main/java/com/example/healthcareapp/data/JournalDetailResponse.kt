@@ -38,7 +38,8 @@ data class PainRecordDetailResponse(
     val timing: String,
     val bodyPart: String,
     val side: String,
-    val painLevel: Int
+    val painLevel: Int,
+    val painReason: String? = null
 ) : Serializable
 
 data class AttachmentResponse(

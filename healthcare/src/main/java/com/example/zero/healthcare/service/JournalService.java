@@ -3,8 +3,6 @@ package com.example.zero.healthcare.service;
 import com.example.zero.healthcare.Entity.DiaryFolder;
 import com.example.zero.healthcare.Entity.DiaryFolderMember;
 import com.example.zero.healthcare.Entity.User;
-import com.example.zero.healthcare.Entity.journal.BodyPart;
-import com.example.zero.healthcare.Entity.journal.BodySide;
 import com.example.zero.healthcare.Entity.journal.JournalAttachment;
 import com.example.zero.healthcare.Entity.journal.JournalPainRecord;
 import com.example.zero.healthcare.Entity.journal.JournalPostCondition;
@@ -80,12 +78,7 @@ public class JournalService {
         List<PainRecordDto> painRecords = request.getPainRecords();
         if (painRecords != null) {
             for (PainRecordDto dto : painRecords) {
-                journal.addPainRecord(JournalPainRecord.builder()
-                        .timing(PainTiming.PRE)
-                        .bodyPart(BodyPart.valueOf(dto.getBodyPart()))
-                        .side(BodySide.valueOf(dto.getSide()))
-                        .painLevel(dto.getPainLevel())
-                        .build());
+                journal.addPainRecord(JournalPainRecord.fromDto(PainTiming.PRE, dto));
             }
         }
 
@@ -171,12 +164,7 @@ public class JournalService {
         // 운동 후 통증 기록 (timing = POST)
         if (painRecords != null) {
             for (PainRecordDto dto : painRecords) {
-                journal.addPainRecord(JournalPainRecord.builder()
-                        .timing(PainTiming.POST)
-                        .bodyPart(BodyPart.valueOf(dto.getBodyPart()))
-                        .side(BodySide.valueOf(dto.getSide()))
-                        .painLevel(dto.getPainLevel())
-                        .build());
+                journal.addPainRecord(JournalPainRecord.fromDto(PainTiming.POST, dto));
             }
         }
 
@@ -349,12 +337,7 @@ public class JournalService {
         journalRepository.flush();
 
         dtos.stream()
-                .map(dto -> JournalPainRecord.builder()
-                        .timing(timing)
-                        .bodyPart(BodyPart.valueOf(dto.getBodyPart()))
-                        .side(BodySide.valueOf(dto.getSide()))
-                        .painLevel(dto.getPainLevel())
-                        .build())
+                .map(dto -> JournalPainRecord.fromDto(timing, dto))
                 .forEach(journal::addPainRecord);
     }
 

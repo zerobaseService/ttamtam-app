@@ -23,8 +23,14 @@ class ViewPagerAdapter(
         }
         1 -> ConditionCheckFragment().apply {
             arguments = Bundle().apply {
-                putSerializable("PRE_CONDITION", detail.preCondition)
-                putSerializable("POST_CONDITION", detail.postCondition)
+                putSerializable(ConditionCheckFragment.ARG_PRE_CONDITION, detail.preCondition)
+                putSerializable(ConditionCheckFragment.ARG_POST_CONDITION, detail.postCondition)
+                putSerializable(
+                    ConditionCheckFragment.ARG_PAIN_RECORDS,
+                    ArrayList(detail.painRecords.orEmpty())
+                )
+                putString(ConditionCheckFragment.ARG_STARTED_AT, detail.startedAt)
+                putString(ConditionCheckFragment.ARG_CONTENT, detail.content)
             }
         }
         else -> throw IllegalArgumentException("Unknown tab position: $position")

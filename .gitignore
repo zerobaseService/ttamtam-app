@@ -32,3 +32,5 @@ HealthCareApp/build/
 HealthCareApp/local.properties
 HealthCareApp/**/*.apk
 HealthCareApp/**/*.aab
+HealthCareApp/**/*.jks
+HealthCareApp/**/*.keystore

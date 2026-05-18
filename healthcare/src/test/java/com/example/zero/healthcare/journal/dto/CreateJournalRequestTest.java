@@ -40,7 +40,7 @@ class CreateJournalRequestTest {
     }
 
     private PainRecordDto painRecord(String bodyPart, String side, Integer painLevel) {
-        return new PainRecordDto(bodyPart, side, painLevel);
+        return PainRecordDto.of(bodyPart, side, painLevel);
     }
 
     @Test

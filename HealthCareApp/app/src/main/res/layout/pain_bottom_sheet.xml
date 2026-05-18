@@ -25,10 +25,11 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_title" />
 
+    <!-- 좌/우 선택 박스 -->
     <LinearLayout
         android:id="@+id/layout_direction"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@id/tv_title">
@@ -36,106 +37,176 @@
         <TextView
             android:id="@+id/btn_left"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/selector_tab_bg"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/bg_side_box_selector"
             android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
             android:text="좌"
-            android:textColor="@drawable/selector_tab"
-            android:textSize="16sp" />
+            android:textColor="#8896A8"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/btn_right"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/selector_tab_bg"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_side_box_selector"
             android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
             android:text="우"
-            android:textColor="@drawable/selector_tab"
-            android:textSize="16sp" />
+            android:textColor="#8896A8"
+            android:textSize="13sp" />
     </LinearLayout>
 
-    <RadioGroup
-        android:id="@+id/rg_pain_level"
+    <!-- 통증 단계 도트 + 라벨 -->
+    <LinearLayout
+        android:id="@+id/layout_pain_level"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:gravity="center"
+        android:layout_marginTop="12dp"
         android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@id/layout_direction">
 
-        <RadioButton
-            android:id="@+id/rb_level1"
+        <LinearLayout
+            android:id="@+id/ll_level1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:button="@drawable/select_radio_pain"
             android:gravity="center"
-            android:text="1단계"
-            android:textColor="#FFB8B8"
-            android:textSize="13sp" />
+            android:orientation="vertical">
 
-        <RadioButton
-            android:id="@+id/rb_level2"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:button="@drawable/select_radio_pain"
-            android:gravity="center"
-            android:text="2단계"
-            android:textColor="#FFB8B8"
-            android:textSize="13sp" />
+            <ImageView
+                android:id="@+id/dot_level1"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/dot_pain_unselected" />
 
-        <RadioButton
-            android:id="@+id/rb_level3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:button="@drawable/select_radio_pain"
-            android:gravity="center"
-            android:text="3단계"
-            android:textColor="#FFB8B8"
-            android:textSize="13sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="1단계"
+                android:textColor="@color/pain_label_1"
+                android:textSize="13sp" />
+        </LinearLayout>
 
-        <RadioButton
-            android:id="@+id/rb_level4"
+        <LinearLayout
+            android:id="@+id/ll_level2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:button="@drawable/select_radio_pain"
             android:gravity="center"
-            android:text="4단계"
-            android:textColor="#FFB8B8"
-            android:textSize="13sp" />
+            android:orientation="vertical">
 
-        <RadioButton
-            android:id="@+id/rb_level5"
+            <ImageView
+                android:id="@+id/dot_level2"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/dot_pain_unselected" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="2단계"
+                android:textColor="@color/pain_label_2"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_level3"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:button="@drawable/select_radio_pain"
             android:gravity="center"
-            android:text="5단계"
-            android:textColor="#FFB8B8"
-            android:textSize="13sp" />
-    </RadioGroup>
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/dot_level3"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/dot_pain_unselected" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="3단계"
+                android:textColor="@color/pain_label_3"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_level4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/dot_level4"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/dot_pain_unselected" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="4단계"
+                android:textColor="@color/pain_label_4"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_level5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/dot_level5"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/dot_pain_unselected" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="5단계"
+                android:textColor="@color/pain_label_5"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <EditText
         android:id="@+id/et_pain_memo"
         android:layout_width="match_parent"
         android:layout_height="140dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="12dp"
         android:background="@drawable/shape_button_light_gray"
         android:gravity="top"
-        android:hint="통증이 생기게 된 이유를 입력해주세요\n해당 항목은 필수 입력이 아니에요"
+        android:hint="통증이 생기게 된 이유를 입력해주세요&#10;해당 항목은 필수 입력이 아니에요"
+        android:inputType="textMultiLine"
+        android:maxLength="1000"
         android:padding="16dp"
         android:textColor="#1E293B"
         android:textColorHint="#94A3B8"
         android:textSize="15sp"
-        app:layout_constraintTop_toBottomOf="@id/rg_pain_level" />
+        app:layout_constraintTop_toBottomOf="@id/layout_pain_level" />
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_complete"
@@ -143,8 +214,8 @@
         android:layout_height="60dp"
         android:layout_marginTop="24dp"
         android:background="@drawable/shape_btn_dark"
-        android:text="완료"
         android:gravity="center"
+        android:text="완료"
         android:textColor="@android:color/white"
         android:textSize="18sp"
         android:textStyle="bold"

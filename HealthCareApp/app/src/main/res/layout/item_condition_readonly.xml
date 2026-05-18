@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardElevation="0dp"
+    app:cardMaxElevation="0dp"
+    app:cardCornerRadius="0dp"
+    app:cardBackgroundColor="@android:color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- 헤더 영역 -->
+        <RelativeLayout
+            android:id="@+id/layout_header"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:id="@+id/tv_condition_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:fontFamily="@font/pretendard"
+                android:textColor="#2D3A4B"
+                android:textSize="16sp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_finish_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:fontFamily="@font/pretendard"
+                    android:textColor="#94A3B8"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/iv_arrow"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/arrow_down"
+                    app:tint="#94A3B8" />
+
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- 상세 영역 -->
+        <LinearLayout
+            android:id="@+id/layout_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#F8F9FA"
+            android:orientation="vertical"
+            android:paddingBottom="20dp"
+            android:visibility="gone">
+
+            <!-- 상태 질문 라벨 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:fontFamily="@font/pretendard"
+                android:text="상태 질문"
+                android:textColor="#2D3A4B"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <!-- 5문항 RecyclerView (한 번에 전부) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_questions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+
+            <!-- 통증 섹션 -->
+            <LinearLayout
+                android:id="@+id/layout_pain_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="24dp"
+                    android:layout_marginTop="32dp"
+                    android:layout_marginBottom="4dp"
+                    android:fontFamily="@font/pretendard"
+                    android:text="통증 부위"
+                    android:textColor="#2D3A4B"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_pain_tags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+            </LinearLayout>
+
+            <!-- 메모 섹션 -->
+            <LinearLayout
+                android:id="@+id/layout_memo_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="24dp"
+                    android:layout_marginTop="32dp"
+                    android:layout_marginBottom="12dp"
+                    android:fontFamily="@font/pretendard"
+                    android:text="메모/피드백"
+                    android:textColor="#2D3A4B"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_feedback_memo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="24dp"
+                    android:background="@drawable/bg_memo_input"
+                    android:gravity="top"
+                    android:lineSpacingExtra="4dp"
+                    android:padding="16dp"
+                    android:textColor="#475569"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E2E8F0" />
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

@@ -60,7 +60,7 @@ class JournalControllerTest {
                     "previousFatigue": 4, "overallCondition": 8
                   },
                   "painRecords": [
-                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 7}
+                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 5}
                   ]
                 }""";
 
@@ -926,13 +926,13 @@ class JournalControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /{id} — painLevel이 10 초과이면 400을 반환한다")
+    @DisplayName("PATCH /{id} — painLevel이 5 초과이면 400을 반환한다")
     void updateJournal_painLevelOutOfRange_returns400() throws Exception {
         String journalId = createJournalAndGetId();
 
         String patchBody = """
                 {
-                  "prePainRecords": [{"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 11}]
+                  "prePainRecords": [{"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 6}]
                 }""";
 
         mockMvc.perform(patch("/api/journals/" + journalId)
@@ -1174,6 +1174,165 @@ class JournalControllerTest {
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].workoutDate").value("2026-04-20"));
+    }
+
+    // ─── painReason / painLevel 1~5 검증 ─────────────────────────────────────
+
+    @Test
+    @DisplayName("POST /journals — painReason 포함 시 201을 반환한다")
+    void createJournal_withPainReason_returns201() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  },
+                  "painRecords": [
+                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 3, "painReason": "오래 앉아 있어 어깨가 결림"}
+                  ]
+                }""";
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("POST /journals — painReason 미포함 시 201을 반환한다")
+    void createJournal_painReasonOmitted_returns201() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  },
+                  "painRecords": [
+                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 3}
+                  ]
+                }""";
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("POST /journals — painReason 1001자 전송 시 400 INVALID_REQUEST를 반환한다")
+    void createJournal_painReasonTooLong_returns400() throws Exception {
+        String longReason = "가".repeat(1001);
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  },
+                  "painRecords": [
+                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 3, "painReason": "%s"}
+                  ]
+                }""".formatted(longReason);
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("POST /journals — painLevel 6 전송 시 400 INVALID_REQUEST를 반환한다")
+    void createJournal_painLevelAbove5_returns400() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  },
+                  "painRecords": [
+                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 6}
+                  ]
+                }""";
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("POST /journals — painLevel 0 전송 시 400 INVALID_REQUEST를 반환한다")
+    void createJournal_painLevelBelow1_returns400() throws Exception {
+        String body = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "preCondition": {
+                    "jointMusclePain": 5, "sleepHours": 7, "sleepQuality": 6,
+                    "previousFatigue": 4, "overallCondition": 8
+                  },
+                  "painRecords": [
+                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 0}
+                  ]
+                }""";
+
+        mockMvc.perform(post("/api/journals")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id} — postPainRecords에 painReason 전송 시 200과 painReason이 응답에 포함된다")
+    void updateJournal_postPainReasonPersisted_returns200() throws Exception {
+        String journalId = createJournalAndGetId();
+
+        String completeBody = """
+                {
+                  "workoutDate": "2026-04-20",
+                  "startedAt": "2026-04-20T09:00:00",
+                  "postCondition": {
+                    "jointMusclePain": 6, "intensityFit": 7, "goalAchieved": 8,
+                    "dizziness": 2, "mood": 9
+                  }
+                }""";
+        mockMvc.perform(post("/api/journals/complete")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(completeBody))
+                .andExpect(status().isOk());
+
+        String patchBody = """
+                {
+                  "postPainRecords": [
+                    {"bodyPart": "KNEE", "side": "RIGHT", "painLevel": 2, "painReason": "달리기 후 무릎 통증"}
+                  ]
+                }""";
+
+        mockMvc.perform(patch("/api/journals/" + journalId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.painRecords[0].painReason").value("달리기 후 무릎 통증"));
     }
 
     @Test

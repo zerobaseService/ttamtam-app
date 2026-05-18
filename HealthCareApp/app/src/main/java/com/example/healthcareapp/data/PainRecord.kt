@@ -3,7 +3,11 @@ package com.example.healthcareapp.data
 import java.io.Serializable
 
 data class PainRecord(
-    val bodyPartName: String, // 한국어 부위명 (표시용)
-    val side: String,         // "좌" or "우"
-    val painLevel: Int        // 1~5
-) : Serializable
+    val bodyPartName: String,
+    val side: String,
+    val painLevel: Int,
+    val painReason: String? = null
+) : Serializable {
+    fun sameTarget(other: PainRecord): Boolean =
+        bodyPartName == other.bodyPartName && side == other.side
+}

@@ -4,20 +4,21 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.view.Gravity
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatButton
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.healthcareapp.adapter.BodyPart
 import com.example.healthcareapp.adapter.BodyPartAdapter
-import com.example.healthcareapp.adapter.ConditionCheckAdapter
+import com.example.healthcareapp.adapter.ConditionCheckAdapterV2
 import com.example.healthcareapp.data.CreateJournalRequest
-import com.example.healthcareapp.data.PainRecord
 import com.example.healthcareapp.data.PainRecordDto
+import com.example.healthcareapp.data.PainSelectionState
 import com.example.healthcareapp.data.PreConditionDto
 import com.example.healthcareapp.data.ApiResponse
 import com.example.healthcareapp.data.JournalCreateResponse
@@ -35,15 +36,17 @@ import java.util.Locale
 
 class ConditionCheckActivity : AppCompatActivity() {
 
-    private lateinit var questionAdapter: ConditionCheckAdapter
+    private lateinit var questionAdapter: ConditionCheckAdapterV2
     private lateinit var bodyPartAdapter: BodyPartAdapter
     private val questions = mutableListOf<StatusQuestion1>()
 
-    private var selectedPainRecord: PainRecord? = null
+    private val painSelectionState = PainSelectionState()
     private var folderId: Long? = null
 
-    private lateinit var tvPainTagContent: TextView
-    private lateinit var btnClearPain: ImageView
+    private lateinit var tvPainTagPlaceholder: TextView
+    private lateinit var layoutSelectedPainTags: LinearLayout
+    private lateinit var tvFrontCount: TextView
+    private lateinit var tvBackCount: TextView
 
     private val bodyDataMap = mapOf(
         "앞면" to mapOf(
@@ -70,36 +73,87 @@ class ConditionCheckActivity : AppCompatActivity() {
 
         folderId = intent.getLongExtra("FOLDER_ID", -1L).takeIf { it != -1L }
 
-        tvPainTagContent = findViewById(R.id.tv_pain_tag_content)
-        btnClearPain = findViewById(R.id.btn_clear_pain)
+        tvPainTagPlaceholder = findViewById(R.id.tv_pain_tag_placeholder)
+        layoutSelectedPainTags = findViewById(R.id.layout_selected_pain_tags)
+        tvFrontCount = findViewById<LinearLayout>(R.id.btn_front).findViewById(R.id.tv_front_count)
+        tvBackCount = findViewById<LinearLayout>(R.id.btn_back).findViewById(R.id.tv_back_count)
 
         initData()
         setupQuestions()
         setupBodyParts()
-        setupPainTagClear()
         setupFinishButton()
 
         findViewById<ImageView>(R.id.btn_close_condition).setOnClickListener { finish() }
     }
 
-    private fun setupPainTagClear() {
-        btnClearPain.setOnClickListener {
-            selectedPainRecord = null
-            updatePainTagUI()
-        }
-    }
-
     private fun updatePainTagUI() {
-        val record = selectedPainRecord
-        if (record != null) {
-            tvPainTagContent.text = "${record.side} ${record.bodyPartName} : ${record.painLevel}단계"
-            tvPainTagContent.setTextColor(Color.parseColor("#2D3A4B"))
-            btnClearPain.visibility = View.VISIBLE
+        layoutSelectedPainTags.removeAllViews()
+
+        if (painSelectionState.all.isEmpty()) {
+            tvPainTagPlaceholder.visibility = View.VISIBLE
+            layoutSelectedPainTags.visibility = View.GONE
         } else {
-            tvPainTagContent.text = "통증 부위를 선택해주세요"
-            tvPainTagContent.setTextColor(Color.parseColor("#94A3B8"))
-            btnClearPain.visibility = View.GONE
+            tvPainTagPlaceholder.visibility = View.GONE
+            layoutSelectedPainTags.visibility = View.VISIBLE
+
+            val d = resources.displayMetrics.density
+            val dp = { n: Int -> (n * d).toInt() }
+            val gray = Color.parseColor("#8896A8")
+
+            for (sp in painSelectionState.all) {
+                val tagRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setBackgroundResource(R.drawable.bg_selected_tag)
+                    setPadding(dp(12), dp(8), dp(8), dp(8))
+                }
+
+                val leftGroup = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                val leftLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                tagRow.addView(leftGroup, leftLp)
+
+                leftGroup.addView(TextView(this).apply {
+                    text = "${sp.record.side} ${sp.record.bodyPartName}"
+                    setTextColor(gray)
+                    textSize = 14f
+                })
+
+                val dividerLp = LinearLayout.LayoutParams(dp(1), dp(10)).apply {
+                    marginStart = dp(6)
+                    marginEnd = dp(6)
+                }
+                leftGroup.addView(View(this).apply {
+                    setBackgroundColor(Color.parseColor("#B8BDC3"))
+                }, dividerLp)
+
+                leftGroup.addView(TextView(this).apply {
+                    text = "통증정도: ${sp.record.painLevel}단계"
+                    setTextColor(gray)
+                    textSize = 14f
+                })
+
+                tagRow.addView(ImageView(this).apply {
+                    setImageResource(R.drawable.ic_tag_close)
+                    setOnClickListener {
+                        painSelectionState.remove(sp.direction, sp.record)
+                        updatePainTagUI()
+                        bodyPartAdapter.notifyDataSetChanged()
+                    }
+                }, LinearLayout.LayoutParams(dp(20), dp(20)))
+
+                val rowLp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(8) }
+                layoutSelectedPainTags.addView(tagRow, rowLp)
+            }
         }
+
+        tvFrontCount.text = painSelectionState.countByDirection("앞면").toString()
+        tvBackCount.text = painSelectionState.countByDirection("뒷면").toString()
     }
 
     private fun setupFinishButton() {
@@ -120,13 +174,14 @@ class ConditionCheckActivity : AppCompatActivity() {
             overallCondition = scores[4]
         )
 
-        val painRecords = selectedPainRecord?.let { record ->
-            listOf(PainRecordDto(
-                bodyPart = BodyPartMapper.toServerBodyPart(record.bodyPartName),
-                side = BodyPartMapper.toServerBodySide(record.side),
-                painLevel = record.painLevel
-            ))
-        }
+        val painRecords = painSelectionState.all.map { sp ->
+            PainRecordDto(
+                bodyPart = BodyPartMapper.toServerBodyPart(sp.record.bodyPartName),
+                side = BodyPartMapper.toServerBodySide(sp.record.side),
+                painLevel = sp.record.painLevel,
+                painReason = sp.record.painReason
+            )
+        }.takeIf { it.isNotEmpty() }
 
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
@@ -165,12 +220,6 @@ class ConditionCheckActivity : AppCompatActivity() {
     }
 
     private fun navigateToWorkout(journalId: Long?, workoutDate: String, startedAt: String) {
-//        val intent = Intent(this, WorkoutExerciseActivity::class.java).apply {
-//            putExtra("JOURNAL_ID", journalId ?: -1L)
-//            putExtra("WORKOUT_DATE", workoutDate)
-//            putExtra("STARTED_AT", startedAt)
-//            putExtra("FOLDER_ID", folderId ?: -1L)
-//        }
         val intent = Intent(this, WorkoutSessionActivity::class.java).apply {
             putExtra("JOURNAL_ID", journalId ?: -1L)
             putExtra("WORKOUT_DATE", workoutDate)
@@ -190,7 +239,7 @@ class ConditionCheckActivity : AppCompatActivity() {
 
     private fun setupQuestions() {
         val rvStatus = findViewById<RecyclerView>(R.id.rv_status_questions)
-        questionAdapter = ConditionCheckAdapter(questions)
+        questionAdapter = ConditionCheckAdapterV2(questions)
         rvStatus.apply {
             layoutManager = LinearLayoutManager(this@ConditionCheckActivity)
             adapter = questionAdapter
@@ -199,8 +248,8 @@ class ConditionCheckActivity : AppCompatActivity() {
     }
 
     private fun setupBodyParts() {
-        val btnFront = findViewById<AppCompatButton>(R.id.btn_front)
-        val btnBack = findViewById<AppCompatButton>(R.id.btn_back)
+        val btnFront = findViewById<LinearLayout>(R.id.btn_front)
+        val btnBack = findViewById<LinearLayout>(R.id.btn_back)
         val chipGroupBody = findViewById<ChipGroup>(R.id.chip_group_body)
         val rvBodyParts = findViewById<RecyclerView>(R.id.rv_body_parts)
 
@@ -224,19 +273,28 @@ class ConditionCheckActivity : AppCompatActivity() {
         updateBodyPartList(chipGroupBody, rvBodyParts)
     }
 
-    private fun updateDirectionUI(front: AppCompatButton, back: AppCompatButton) {
-        val activeColor = ContextCompat.getColor(this, R.color.front_black)
-        val inactiveColor = ContextCompat.getColor(this, R.color.back_gray)
+    private fun updateDirectionUI(front: LinearLayout, back: LinearLayout) {
+        val frontLabel = front.findViewById<TextView>(R.id.tv_front_label)
+        val frontCount = front.findViewById<TextView>(R.id.tv_front_count)
+        val backLabel = back.findViewById<TextView>(R.id.tv_back_label)
+        val backCount = back.findViewById<TextView>(R.id.tv_back_count)
+        val activeColor = Color.parseColor("#4A5768")
+        val inactiveColor = Color.parseColor("#8896A8")
+        val countActiveColor = Color.parseColor("#53A1FF")
         if (currentDirection == "앞면") {
             front.setBackgroundResource(R.drawable.bg_tab_selected)
-            front.setTextColor(activeColor)
             back.setBackgroundResource(android.R.color.transparent)
-            back.setTextColor(inactiveColor)
+            frontLabel.setTextColor(activeColor)
+            frontCount.setTextColor(countActiveColor)
+            backLabel.setTextColor(inactiveColor)
+            backCount.setTextColor(inactiveColor)
         } else {
             back.setBackgroundResource(R.drawable.bg_tab_selected)
-            back.setTextColor(activeColor)
             front.setBackgroundResource(android.R.color.transparent)
-            front.setTextColor(inactiveColor)
+            backLabel.setTextColor(activeColor)
+            backCount.setTextColor(countActiveColor)
+            frontLabel.setTextColor(inactiveColor)
+            frontCount.setTextColor(inactiveColor)
         }
     }
 
@@ -254,10 +312,21 @@ class ConditionCheckActivity : AppCompatActivity() {
         val stringList = bodyDataMap[currentDirection]?.get(bodyKey) ?: emptyList()
         val detailList = stringList.map { BodyPart(it) }
 
-        bodyPartAdapter = BodyPartAdapter(detailList) { clickedPart ->
-            val bottomSheet = PainBottomSheetFragment(clickedPart.name) { painRecord ->
-                selectedPainRecord = painRecord
-                updatePainTagUI()
+        bodyPartAdapter = BodyPartAdapter(
+            detailList,
+            isSelectedProvider = { partName -> painSelectionState.isAnySelected(currentDirection, partName) }
+        ) { clickedPart ->
+            val bottomSheet = PainBottomSheetFragment.newInstance(
+                clickedPart.name,
+                PainBottomSheetFragment.Mode.CREATE
+            ) { painRecord ->
+                val added = painSelectionState.addIfAbsent(currentDirection, painRecord)
+                if (!added) {
+                    Toast.makeText(this, "이미 선택된 부위입니다", Toast.LENGTH_SHORT).show()
+                } else {
+                    updatePainTagUI()
+                    bodyPartAdapter.notifyDataSetChanged()
+                }
             }
             bottomSheet.show(supportFragmentManager, "PainBottomSheet")
         }
