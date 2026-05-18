@@ -16,4 +16,9 @@
     <color name="workout_navy">#4A5768</color> <!-- 활성화된 탭/버튼 색상 -->
     <color name="workout_gray">#B1B8C0</color> <!-- 비활성화/회색 텍스트 -->
     <color name="workout_card_bg">#FFFFFF</color> <!-- 운동 카드 배경 -->
+    <color name="pain_label_1">#FFB2B2</color>
+    <color name="pain_label_2">#FF8E8E</color>
+    <color name="pain_label_3">#FF5E5E</color>
+    <color name="pain_label_4">#FF0A0A</color>
+    <color name="pain_label_5">#AF0505</color>
 </resources>

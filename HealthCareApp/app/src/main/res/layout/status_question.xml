@@ -130,50 +130,99 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="24dp"
+                android:layout_marginHorizontal="18dp"
                 android:background="@drawable/bg_tab_container"
                 android:orientation="horizontal"
                 android:padding="4dp">
 
-                <androidx.appcompat.widget.AppCompatButton
+                <LinearLayout
                     android:id="@+id/btn_front"
                     android:layout_width="0dp"
                     android:layout_height="40dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_tab_selected"
-                    android:text="앞면"
-                    android:textColor="#000000" />
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:clickable="true"
+                    android:focusable="true">
 
-                <androidx.appcompat.widget.AppCompatButton
+                    <TextView
+                        android:id="@+id/tv_front_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="앞면"
+                        android:textColor="#4A5768"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/pretendard"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_front_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="2dp"
+                        android:text="0"
+                        android:textColor="#53A1FF"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/pretendard"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:id="@+id/btn_back"
                     android:layout_width="0dp"
                     android:layout_height="40dp"
                     android:layout_weight="1"
                     android:background="@android:color/transparent"
-                    android:text="뒷면"
-                    android:textColor="#94A3B8" />
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <TextView
+                        android:id="@+id/tv_back_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="뒷면"
+                        android:textColor="#8896A8"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/pretendard" />
+
+                    <TextView
+                        android:id="@+id/tv_back_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="2dp"
+                        android:text="0"
+                        android:textColor="#8896A8"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/pretendard" />
+                </LinearLayout>
             </LinearLayout>
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="24dp"
-                android:layout_marginTop="16dp"
-                android:background="@android:color/white"
+                android:layout_marginHorizontal="18dp"
+                android:layout_marginTop="8dp"
                 app:cardBackgroundColor="@android:color/white"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#E1E7EE"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp">
 
                     <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:scrollbars="none">
+                        android:scrollbars="none"
+                        android:layout_marginStart="18dp">
 
                         <com.google.android.material.chip.ChipGroup
                             android:id="@+id/chip_group_body"
@@ -238,39 +287,32 @@
                         android:nestedScrollingEnabled="false"
                         tools:listitem="@layout/item_body_part_selection" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- 선택된 통증 태그 -->
-            <LinearLayout
-                android:id="@+id/layout_pain_tag_container"
+            <TextView
+                android:id="@+id/tv_pain_tag_placeholder"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="24dp"
-                android:layout_marginTop="12dp"
+                android:layout_marginHorizontal="18dp"
+                android:layout_marginTop="8dp"
                 android:background="@drawable/bg_selected_tag"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
                 android:gravity="center_vertical"
-                android:padding="12dp">
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="10dp"
+                android:text="통증 부위를 선택해주세요"
+                android:textColor="#8896A8"
+                android:textSize="14sp"
+                android:fontFamily="@font/pretendard" />
 
-                <TextView
-                    android:id="@+id/tv_pain_tag_content"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="통증 부위를 선택해주세요"
-                    android:textColor="#94A3B8"
-                    android:textSize="14sp" />
-
-                <ImageView
-                    android:id="@+id/btn_clear_pain"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/status_x"
-                    android:visibility="gone"
-                    app:tint="#94A3B8" />
-            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/layout_selected_pain_tags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="18dp"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical"
+                android:visibility="gone" />
 
             <!-- 메모 영역 -->
             <TextView

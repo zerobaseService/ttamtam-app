@@ -19,7 +19,8 @@ data class PostConditionDto(
 data class PainRecordDto(
     val bodyPart: String,
     val side: String,
-    val painLevel: Int
+    val painLevel: Int,
+    val painReason: String? = null
 )
 
 data class ExerciseSetDto(

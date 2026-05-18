@@ -1,5 +1,6 @@
 package com.example.healthcareapp.network
 
+import com.example.healthcareapp.BuildConfig
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -8,7 +9,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    private const val BASE_URL = "https://ttamtam.duckdns.org/"
+    private val BASE_URL = BuildConfig.BASE_URL
 
     var tokenProvider: (() -> String?) = { null }
 

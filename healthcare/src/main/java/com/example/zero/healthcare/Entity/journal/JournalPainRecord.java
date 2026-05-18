@@ -48,12 +48,26 @@ public class JournalPainRecord {
     @Column(name = "pain_level", nullable = false)
     private Integer painLevel;
 
+    @Column(name = "pain_reason", length = 1000)
+    private String painReason;
+
     @Builder
-    public JournalPainRecord(PainTiming timing, BodyPart bodyPart, BodySide side, Integer painLevel) {
+    public JournalPainRecord(PainTiming timing, BodyPart bodyPart, BodySide side, Integer painLevel, String painReason) {
         this.timing = timing;
         this.bodyPart = bodyPart;
         this.side = side;
         this.painLevel = painLevel;
+        this.painReason = painReason;
+    }
+
+    public static JournalPainRecord fromDto(PainTiming timing, com.example.zero.healthcare.dto.journal.PainRecordDto dto) {
+        return JournalPainRecord.builder()
+                .timing(timing)
+                .bodyPart(BodyPart.valueOf(dto.getBodyPart()))
+                .side(BodySide.valueOf(dto.getSide()))
+                .painLevel(dto.getPainLevel())
+                .painReason(dto.getPainReason())
+                .build();
     }
 
     void setJournal(WorkoutJournal journal) {

@@ -5,7 +5,11 @@ import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -24,8 +28,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import com.example.healthcareapp.data.ExerciseDto
 import com.example.healthcareapp.data.ExerciseRecord
 import com.example.healthcareapp.data.ExerciseSetDto
-import com.example.healthcareapp.data.PainRecord
 import com.example.healthcareapp.data.PainRecordDto
+import com.example.healthcareapp.data.PainSelectionState
 import com.example.healthcareapp.data.PostConditionDto
 import com.example.healthcareapp.data.StatusQuestion
 import com.example.healthcareapp.databinding.StatusQuestionBinding
@@ -46,7 +50,7 @@ class WorkoutFinishActivity : AppCompatActivity() {
     private lateinit var questionList: List<StatusQuestion>
 
     private var receivedWorkoutType: String = "개인운동"
-    private var selectedPainRecord: PainRecord? = null
+    private val painSelectionState = PainSelectionState()
 
     private var journalId: Long = -1L
     private var workoutDate: String = ""
@@ -97,7 +101,6 @@ class WorkoutFinishActivity : AppCompatActivity() {
         setupTimeInfo()
         setupStatusQuestions()
         setupBodyParts()
-        setupPainTagClear()
         setupPhotoAttachment()
         initClickListeners()
     }
@@ -152,24 +155,73 @@ class WorkoutFinishActivity : AppCompatActivity() {
             })
     }
 
-    private fun setupPainTagClear() {
-        binding.btnClearPain.setOnClickListener {
-            selectedPainRecord = null
-            updatePainTagUI()
-        }
-    }
-
     private fun updatePainTagUI() {
-        val record = selectedPainRecord
-        if (record != null) {
-            binding.tvPainTagContent.text = "${record.side} ${record.bodyPartName} : ${record.painLevel}단계"
-            binding.tvPainTagContent.setTextColor(Color.parseColor("#2D3A4B"))
-            binding.btnClearPain.visibility = View.VISIBLE
+        binding.layoutSelectedPainTags.removeAllViews()
+
+        if (painSelectionState.all.isEmpty()) {
+            binding.tvPainTagPlaceholder.visibility = View.VISIBLE
+            binding.layoutSelectedPainTags.visibility = View.GONE
         } else {
-            binding.tvPainTagContent.text = "통증 부위를 선택해주세요"
-            binding.tvPainTagContent.setTextColor(Color.parseColor("#94A3B8"))
-            binding.btnClearPain.visibility = View.GONE
+            binding.tvPainTagPlaceholder.visibility = View.GONE
+            binding.layoutSelectedPainTags.visibility = View.VISIBLE
+
+            val d = resources.displayMetrics.density
+            val dp = { n: Int -> (n * d).toInt() }
+            val gray = Color.parseColor("#8896A8")
+
+            for (sp in painSelectionState.all) {
+                val tagRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setBackgroundResource(R.drawable.bg_selected_tag)
+                    setPadding(dp(12), dp(8), dp(8), dp(8))
+                }
+
+                val leftGroup = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                tagRow.addView(leftGroup, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+
+                leftGroup.addView(TextView(this).apply {
+                    text = "${sp.record.side} ${sp.record.bodyPartName}"
+                    setTextColor(gray)
+                    textSize = 14f
+                })
+
+                val dividerLp = LinearLayout.LayoutParams(dp(1), dp(10)).apply {
+                    marginStart = dp(6)
+                    marginEnd = dp(6)
+                }
+                leftGroup.addView(View(this).apply {
+                    setBackgroundColor(Color.parseColor("#B8BDC3"))
+                }, dividerLp)
+
+                leftGroup.addView(TextView(this).apply {
+                    text = "통증정도: ${sp.record.painLevel}단계"
+                    setTextColor(gray)
+                    textSize = 14f
+                })
+
+                tagRow.addView(ImageView(this).apply {
+                    setImageResource(R.drawable.ic_tag_close)
+                    setOnClickListener {
+                        painSelectionState.remove(sp.direction, sp.record)
+                        updatePainTagUI()
+                        bodyPartAdapter.notifyDataSetChanged()
+                    }
+                }, LinearLayout.LayoutParams(dp(20), dp(20)))
+
+                val rowLp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(8) }
+                binding.layoutSelectedPainTags.addView(tagRow, rowLp)
+            }
         }
+
+        binding.tvFrontCount.text = painSelectionState.countByDirection("FRONT").toString()
+        binding.tvBackCount.text = painSelectionState.countByDirection("BACK").toString()
     }
 
     private fun initClickListeners() {
@@ -181,7 +233,6 @@ class WorkoutFinishActivity : AppCompatActivity() {
 
     private fun submitComplete() {
         val scores = questionList.map { it.score }
-        // POST 컨디션 순서: 통증, 강도적합, 어지러움, 기분, 목표달성
         val postCondition = PostConditionDto(
             jointMusclePain = scores[0],
             intensityFit = scores[1],
@@ -190,13 +241,14 @@ class WorkoutFinishActivity : AppCompatActivity() {
             goalAchieved = scores[4]
         )
 
-        val painRecords = selectedPainRecord?.let { record ->
-            listOf(PainRecordDto(
-                bodyPart = BodyPartMapper.toServerBodyPart(record.bodyPartName),
-                side = BodyPartMapper.toServerBodySide(record.side),
-                painLevel = record.painLevel
-            ))
-        }
+        val painRecords = painSelectionState.all.map { sp ->
+            PainRecordDto(
+                bodyPart = BodyPartMapper.toServerBodyPart(sp.record.bodyPartName),
+                side = BodyPartMapper.toServerBodySide(sp.record.side),
+                painLevel = sp.record.painLevel,
+                painReason = sp.record.painReason
+            )
+        }.takeIf { it.isNotEmpty() }
 
         val exerciseDtos = exercises.mapIndexed { index, record ->
             ExerciseDto(
@@ -300,10 +352,21 @@ class WorkoutFinishActivity : AppCompatActivity() {
     }
 
     private fun setupBodyParts() {
-        bodyPartAdapter = BodyPartAdapter(mutableListOf()) { part ->
-            val bottomSheet = PainBottomSheetFragment(part.name) { painRecord ->
-                selectedPainRecord = painRecord
-                updatePainTagUI()
+        bodyPartAdapter = BodyPartAdapter(
+            mutableListOf(),
+            isSelectedProvider = { partName -> painSelectionState.isAnySelected(currentDirection, partName) }
+        ) { part ->
+            val bottomSheet = PainBottomSheetFragment.newInstance(
+                part.name,
+                PainBottomSheetFragment.Mode.CREATE
+            ) { painRecord ->
+                val added = painSelectionState.addIfAbsent(currentDirection, painRecord)
+                if (!added) {
+                    Toast.makeText(this, "이미 선택된 부위입니다", Toast.LENGTH_SHORT).show()
+                } else {
+                    updatePainTagUI()
+                    bodyPartAdapter.notifyDataSetChanged()
+                }
             }
             bottomSheet.show(supportFragmentManager, "PainBottomSheet")
         }
@@ -342,16 +405,23 @@ class WorkoutFinishActivity : AppCompatActivity() {
     }
 
     private fun updateDirectionTabUI(isFront: Boolean) {
+        val activeColor = Color.parseColor("#4A5768")
+        val inactiveColor = Color.parseColor("#8896A8")
+        val countActiveColor = Color.parseColor("#53A1FF")
         if (isFront) {
             binding.btnFront.setBackgroundResource(R.drawable.bg_tab_selected)
-            binding.btnFront.setTextColor(Color.parseColor("#3A8DFF"))
             binding.btnBack.setBackgroundResource(android.R.color.transparent)
-            binding.btnBack.setTextColor(Color.parseColor("#94A3B8"))
+            binding.tvFrontLabel.setTextColor(activeColor)
+            binding.tvFrontCount.setTextColor(countActiveColor)
+            binding.tvBackLabel.setTextColor(inactiveColor)
+            binding.tvBackCount.setTextColor(inactiveColor)
         } else {
             binding.btnBack.setBackgroundResource(R.drawable.bg_tab_selected)
-            binding.btnBack.setTextColor(Color.parseColor("#3A8DFF"))
             binding.btnFront.setBackgroundResource(android.R.color.transparent)
-            binding.btnFront.setTextColor(Color.parseColor("#94A3B8"))
+            binding.tvBackLabel.setTextColor(activeColor)
+            binding.tvBackCount.setTextColor(countActiveColor)
+            binding.tvFrontLabel.setTextColor(inactiveColor)
+            binding.tvFrontCount.setTextColor(inactiveColor)
         }
     }
 

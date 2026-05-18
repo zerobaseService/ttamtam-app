@@ -6,8 +6,9 @@
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
-    android:paddingVertical="16dp"
-    android:paddingHorizontal="4dp">
+    android:paddingVertical="4dp"
+    android:paddingHorizontal="20dp"
+    android:layout_marginTop="10dp">
 
 
     <TextView
@@ -15,13 +16,24 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="머리"
-        android:textSize="16sp"
-        android:textColor="#2D3A4B"
+        android:textSize="14sp"
+        android:textColor="#181818"
+        android:fontFamily="@font/pretendard"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/iv_arrow" />
+        app:layout_constraintEnd_toStartOf="@id/iv_check" />
 
+    <ImageView
+        android:id="@+id/iv_check"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:src="@drawable/ic_check_selected"
+        android:visibility="gone"
+        app:layout_constraintEnd_toStartOf="@id/iv_arrow"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginEnd="8dp" />
 
     <ImageView
         android:id="@+id/iv_arrow"
