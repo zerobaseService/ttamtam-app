@@ -1,40 +1,14 @@
 package com.example.zero.healthcare.Entity.journal;
 
 public enum BodyPart {
-    HEAD,
-    NECK,
-    SHOULDER,
-    UPPER_ARM,
-    ELBOW,
-    FOREARM,
-    WRIST,
-    HAND,
-    FINGER,
-    CHEST,
-    UPPER_BACK,
-    MIDDLE_BACK,
-    LOWER_BACK,
-    ABDOMEN,
-    SIDE_WAIST,
-    HIP,
-    GROIN,
-    BUTTOCK,
-    PELVIS,
-    THIGH_FRONT,
-    THIGH_BACK,
-    THIGH_INNER,
-    THIGH_OUTER,
-    KNEE,
-    KNEE_BACK,
-    SHIN,
-    CALF,
-    ANKLE,
-    FOOT,
-    TOE,
-    TRAPEZIUS,
-    PECTORALIS,
-    LATISSIMUS,
-    DELTOID,
-    BICEPS,
-    TRICEPS
+    // 머리/목
+    머리, 이마, 얼굴, 목, 경추,
+    // 상체
+    어깨, 날개, 가슴, 등, 허리, 꼬리뼈, 윗배, 옆구리, 아랫배,
+    // 팔/손
+    윗팔, 팔꿈치, 아랫팔, 손목, 손바닥, 손등, 손가락,
+    // 하체
+    고관절, 사타구니, 생식기, 엉덩이, 허벅지, 뒷허벅지, 무릎, 오금, 정강이, 종아리,
+    // 발
+    발목, 아킬레스건, 발등, 발바닥, 발가락
 }

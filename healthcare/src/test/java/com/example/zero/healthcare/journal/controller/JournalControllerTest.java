@@ -60,7 +60,7 @@ class JournalControllerTest {
                     "previousFatigue": 4, "overallCondition": 8
                   },
                   "painRecords": [
-                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 5}
+                    {"bodyPart": "어깨", "side": "좌", "painLevel": 5}
                   ]
                 }""";
 
@@ -128,8 +128,8 @@ class JournalControllerTest {
                     "previousFatigue": 4, "overallCondition": 8
                   },
                   "painRecords": [
-                    {"bodyPart": "KNEE", "side": "LEFT", "painLevel": 5},
-                    {"bodyPart": "KNEE", "side": "LEFT", "painLevel": 3}
+                    {"bodyPart": "무릎", "side": "좌", "painLevel": 5},
+                    {"bodyPart": "무릎", "side": "좌", "painLevel": 3}
                   ]
                 }""";
 
@@ -932,7 +932,7 @@ class JournalControllerTest {
 
         String patchBody = """
                 {
-                  "prePainRecords": [{"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 6}]
+                  "prePainRecords": [{"bodyPart": "어깨", "side": "좌", "painLevel": 6}]
                 }""";
 
         mockMvc.perform(patch("/api/journals/" + journalId)
@@ -1190,7 +1190,7 @@ class JournalControllerTest {
                     "previousFatigue": 4, "overallCondition": 8
                   },
                   "painRecords": [
-                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 3, "painReason": "오래 앉아 있어 어깨가 결림"}
+                    {"bodyPart": "어깨", "side": "좌", "painLevel": 3, "painReason": "오래 앉아 있어 어깨가 결림"}
                   ]
                 }""";
 
@@ -1214,7 +1214,7 @@ class JournalControllerTest {
                     "previousFatigue": 4, "overallCondition": 8
                   },
                   "painRecords": [
-                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 3}
+                    {"bodyPart": "어깨", "side": "좌", "painLevel": 3}
                   ]
                 }""";
 
@@ -1239,7 +1239,7 @@ class JournalControllerTest {
                     "previousFatigue": 4, "overallCondition": 8
                   },
                   "painRecords": [
-                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 3, "painReason": "%s"}
+                    {"bodyPart": "어깨", "side": "좌", "painLevel": 3, "painReason": "%s"}
                   ]
                 }""".formatted(longReason);
 
@@ -1263,7 +1263,7 @@ class JournalControllerTest {
                     "previousFatigue": 4, "overallCondition": 8
                   },
                   "painRecords": [
-                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 6}
+                    {"bodyPart": "어깨", "side": "좌", "painLevel": 6}
                   ]
                 }""";
 
@@ -1287,7 +1287,7 @@ class JournalControllerTest {
                     "previousFatigue": 4, "overallCondition": 8
                   },
                   "painRecords": [
-                    {"bodyPart": "SHOULDER", "side": "LEFT", "painLevel": 0}
+                    {"bodyPart": "어깨", "side": "좌", "painLevel": 0}
                   ]
                 }""";
 
@@ -1322,7 +1322,7 @@ class JournalControllerTest {
         String patchBody = """
                 {
                   "postPainRecords": [
-                    {"bodyPart": "KNEE", "side": "RIGHT", "painLevel": 2, "painReason": "달리기 후 무릎 통증"}
+                    {"bodyPart": "무릎", "side": "우", "painLevel": 2, "painReason": "달리기 후 무릎 통증"}
                   ]
                 }""";
 

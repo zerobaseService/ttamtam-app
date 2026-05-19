@@ -191,7 +191,7 @@ class DiaryMainFragment : Fragment() {
                 startActivity(intent)
             }
 
-            fabAddEntry?.setOnClickListener {
+            fabAddEntry?.setOnClickListener { anchor ->
                 AddEntrySheet(
                     onConditionCheckClick = {
                         val intent = Intent(requireContext(), ConditionCheckActivity::class.java).apply {
@@ -206,7 +206,7 @@ class DiaryMainFragment : Fragment() {
                         val intent = Intent(requireContext(), WorkoutSessionActivity::class.java)
                         startActivity(intent)
                     }
-                ).show(parentFragmentManager, "AddEntrySheet")
+                ).show(requireContext(), anchor)
             }
 
             safeView.findViewById<AppCompatButton>(R.id.btn_retry)?.setOnClickListener {
@@ -283,7 +283,7 @@ class DiaryMainFragment : Fragment() {
                     val items = data.map { journal ->
                         DiaryItem(
                             id = journal.journalId.toString(),
-                            date = journal.workoutDate,
+                            date = formatWorkoutDate(journal.workoutDate),
                             title = journal.workoutType ?: "개인운동",
                             emojiResId = emojiList[(journal.journalId % emojiList.size).toInt()]
                         )
@@ -308,6 +308,16 @@ class DiaryMainFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         currentCall?.cancel()
+    }
+
+    private fun formatWorkoutDate(isoDate: String): String {
+        // "2026-04-10" → "26.04.10"
+        return try {
+            val parts = isoDate.split("-")
+            "${parts[0].takeLast(2)}.${parts[1]}.${parts[2]}"
+        } catch (e: Exception) {
+            isoDate
+        }
     }
 
     private enum class DiaryState { LOADING, CONTENT, EMPTY, ERROR }

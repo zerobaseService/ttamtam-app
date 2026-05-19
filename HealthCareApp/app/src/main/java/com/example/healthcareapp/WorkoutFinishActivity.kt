@@ -77,7 +77,7 @@ class WorkoutFinishActivity : AppCompatActivity() {
         "FRONT_발" to listOf("발목", "발등", "발가락"),
         "BACK_머리/목" to listOf("경추 (목뼈 부위)"),
         "BACK_상체" to listOf("등", "어깨", "날개(견갑골)", "허리", "꼬리뼈"),
-        "BACK_팔/손" to listOf("윗팔", "팔꿈치", "아랫팔", "손목", "손바닥", "손가락"),
+        "BACK_팔/손" to listOf("윗팔", "팔꿈치", "아랫팔", "손목", "손등", "손가락"),
         "BACK_하체" to listOf("엉덩이", "뒷허벅지", "오금", "종아리"),
         "BACK_발" to listOf("아킬레스건", "발바닥")
     )

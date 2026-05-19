@@ -64,7 +64,7 @@ class WorkoutJournalTest {
     @DisplayName("addPainRecord는 painRecords 리스트에 추가하고 양방향 연관을 설정한다")
     void addPainRecord_addsToListAndSetsJournal() {
         WorkoutJournal journal = buildJournal();
-        JournalPainRecord record = buildRecord(BodyPart.SHOULDER, BodySide.LEFT);
+        JournalPainRecord record = buildRecord(BodyPart.어깨, BodySide.좌);
 
         journal.addPainRecord(record);
 
@@ -78,8 +78,8 @@ class WorkoutJournalTest {
     void addPainRecord_multiple_addsAll() {
         WorkoutJournal journal = buildJournal();
 
-        journal.addPainRecord(buildRecord(BodyPart.SHOULDER, BodySide.LEFT));
-        journal.addPainRecord(buildRecord(BodyPart.KNEE, BodySide.RIGHT));
+        journal.addPainRecord(buildRecord(BodyPart.어깨, BodySide.좌));
+        journal.addPainRecord(buildRecord(BodyPart.무릎, BodySide.우));
 
         assertThat(journal.getPainRecords()).hasSize(2);
         assertThat(journal.getPainRecords()).allMatch(r -> r.getJournal() == journal);
@@ -185,21 +185,21 @@ class WorkoutJournalTest {
     @DisplayName("replacePainRecords(PRE) 호출 시 PRE 통증은 교체되고 POST 통증은 유지된다")
     void replacePainRecords_PRE_keepsPOST() {
         WorkoutJournal journal = buildJournal();
-        JournalPainRecord preRecord = buildRecord(BodyPart.SHOULDER, BodySide.LEFT);
+        JournalPainRecord preRecord = buildRecord(BodyPart.어깨, BodySide.좌);
         JournalPainRecord postRecord = JournalPainRecord.builder()
-                .timing(PainTiming.POST).bodyPart(BodyPart.KNEE).side(BodySide.RIGHT).painLevel(3).build();
+                .timing(PainTiming.POST).bodyPart(BodyPart.무릎).side(BodySide.우).painLevel(3).build();
         journal.addPainRecord(preRecord);
         journal.addPainRecord(postRecord);
 
         JournalPainRecord newPreRecord = JournalPainRecord.builder()
-                .timing(PainTiming.PRE).bodyPart(BodyPart.KNEE).side(BodySide.LEFT).painLevel(5).build();
+                .timing(PainTiming.PRE).bodyPart(BodyPart.무릎).side(BodySide.좌).painLevel(5).build();
         journal.replacePainRecords(PainTiming.PRE, List.of(newPreRecord));
 
         assertThat(journal.getPainRecords()).hasSize(2);
         assertThat(journal.getPainRecords().stream()
                 .filter(r -> r.getTiming() == PainTiming.PRE)
                 .map(JournalPainRecord::getBodyPart))
-                .containsExactly(BodyPart.KNEE);
+                .containsExactly(BodyPart.무릎);
         assertThat(journal.getPainRecords().stream()
                 .anyMatch(r -> r.getTiming() == PainTiming.POST)).isTrue();
     }

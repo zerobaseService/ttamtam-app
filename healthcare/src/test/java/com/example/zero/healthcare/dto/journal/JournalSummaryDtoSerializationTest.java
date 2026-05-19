@@ -1,5 +1,6 @@
 package com.example.zero.healthcare.dto.journal;
 
+import com.example.zero.healthcare.Entity.journal.JournalAttachment;
 import com.example.zero.healthcare.Entity.journal.WorkoutJournal;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +35,7 @@ class JournalSummaryDtoSerializationTest {
         when(journal.getPreCondition()).thenReturn(null);
         when(journal.getContent()).thenReturn(null);
         when(journal.getWorkoutType()).thenReturn("개인운동");
+        when(journal.getAttachments()).thenReturn(java.util.List.of());
         return journal;
     }
 
@@ -83,5 +85,25 @@ class JournalSummaryDtoSerializationTest {
         JsonNode node = objectMapper.readTree(objectMapper.writeValueAsString(dto));
 
         assertThat(node.get("workoutType").isNull()).isTrue();
+    }
+
+    @Test
+    @DisplayName("첨부파일이 없으면 hasImage는 false로 직렬화된다")
+    void hasImage_falseWhenNoAttachments() throws Exception {
+        JournalSummaryDto dto = new JournalSummaryDto(stubJournal());
+        JsonNode node = objectMapper.readTree(objectMapper.writeValueAsString(dto));
+
+        assertThat(node.get("hasImage").asBoolean()).isFalse();
+    }
+
+    @Test
+    @DisplayName("첨부파일이 있으면 hasImage는 true로 직렬화된다")
+    void hasImage_trueWhenAttachmentsExist() throws Exception {
+        WorkoutJournal journal = stubJournal();
+        when(journal.getAttachments()).thenReturn(java.util.List.of(mock(JournalAttachment.class)));
+        JournalSummaryDto dto = new JournalSummaryDto(journal);
+        JsonNode node = objectMapper.readTree(objectMapper.writeValueAsString(dto));
+
+        assertThat(node.get("hasImage").asBoolean()).isTrue();
     }
 }

@@ -1,13 +1,17 @@
 package com.example.healthcareapp
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
@@ -37,7 +41,16 @@ class WorkoutActivity : AppCompatActivity() {
     private lateinit var layoutError: LinearLayout
     private lateinit var tvErrorMessage: TextView
 
+    private var journalId: Long = -1L
     private var currentCall: Call<ApiResponse<JournalDetailResponse>>? = null
+
+    private val editLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            fetchJournalDetail(journalId)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,11 +58,17 @@ class WorkoutActivity : AppCompatActivity() {
 
         initViews()
 
-        val journalId = intent.getLongExtra("JOURNAL_ID", -1L)
+        journalId = intent.getLongExtra("JOURNAL_ID", -1L)
         val emojiResId = intent.getIntExtra("EMOJI_RES_ID", -1)
         ivHeaderEmoji.setImageResource(if (emojiResId != -1) emojiResId else R.drawable.emoticon1)
 
         findViewById<View>(R.id.arrow_btn).setOnClickListener { finish() }
+
+        findViewById<FrameLayout>(R.id.btn_edit).setOnClickListener {
+            val intent = Intent(this, JournalEditActivity::class.java)
+                .putExtra("JOURNAL_ID", journalId)
+            editLauncher.launch(intent)
+        }
 
         if (journalId == -1L) {
             showError("일지 정보를 불러올 수 없습니다.")
