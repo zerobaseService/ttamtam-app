@@ -6,9 +6,11 @@ import com.example.healthcareapp.data.CreateJournalRequest
 import com.example.healthcareapp.data.JournalCreateResponse
 import com.example.healthcareapp.data.JournalDetailResponse
 import com.example.healthcareapp.data.JournalSummaryResponse
+import com.example.healthcareapp.data.UpdateJournalRequest
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -30,4 +32,10 @@ interface JournalApiService {
 
     @GET("/api/journals/{id}")
     fun getJournalDetail(@Path("id") journalId: Long): Call<ApiResponse<JournalDetailResponse>>
+
+    @PATCH("/api/journals/{id}")
+    fun updateJournal(
+        @Path("id") journalId: Long,
+        @Body request: UpdateJournalRequest
+    ): Call<ApiResponse<Any>>
 }
