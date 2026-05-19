@@ -91,8 +91,8 @@ class CreateJournalRequestTest {
     @DisplayName("painRecords 내 bodyPart+side 중복이 있으면 violations가 발생한다")
     void validate_duplicatePainRecord_hasViolations() {
         List<PainRecordDto> records = List.of(
-                painRecord("SHOULDER", "LEFT", 5),
-                painRecord("SHOULDER", "LEFT", 7)
+                painRecord("어깨", "좌", 5),
+                painRecord("어깨", "좌", 7)
         );
         CreateJournalRequest req = new CreateJournalRequest(validWorkoutDate(), null, validPreCondition(), records, validStartedAt());
         Set<ConstraintViolation<CreateJournalRequest>> violations = validator.validate(req);
@@ -103,7 +103,7 @@ class CreateJournalRequestTest {
     @Test
     @DisplayName("painLevel이 null이면 통과한다 (PainRecordDto 필드 nullable)")
     void validate_painLevelNull_noViolations() {
-        List<PainRecordDto> records = List.of(painRecord("SHOULDER", "LEFT", null));
+        List<PainRecordDto> records = List.of(painRecord("어깨", "좌", null));
         CreateJournalRequest req = new CreateJournalRequest(validWorkoutDate(), null, validPreCondition(), records, validStartedAt());
         Set<ConstraintViolation<CreateJournalRequest>> violations = validator.validate(req);
         assertThat(violations).isEmpty();
@@ -112,7 +112,7 @@ class CreateJournalRequestTest {
     @Test
     @DisplayName("painLevel이 범위 초과이면 violations가 발생한다")
     void validate_painLevelOutOfRange_hasViolations() {
-        List<PainRecordDto> records = List.of(painRecord("SHOULDER", "LEFT", 11));
+        List<PainRecordDto> records = List.of(painRecord("어깨", "좌", 11));
         CreateJournalRequest req = new CreateJournalRequest(validWorkoutDate(), null, validPreCondition(), records, validStartedAt());
         Set<ConstraintViolation<CreateJournalRequest>> violations = validator.validate(req);
         assertThat(violations).anyMatch(v ->

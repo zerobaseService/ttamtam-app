@@ -68,5 +68,6 @@ data class JournalSummaryResponse(
     val postRecorded: Boolean,
     val preOverallCondition: Int?,
     val contentPreview: String?,
-    val workoutType: String?
+    val workoutType: String?,
+    val hasImage: Boolean = false
 )

@@ -74,9 +74,9 @@ class JournalRepositoryTest {
         WorkoutJournal journal = buildJournal(user.getId());
 
         journal.addPainRecord(JournalPainRecord.builder()
-                .timing(PainTiming.PRE).bodyPart(BodyPart.SHOULDER).side(BodySide.LEFT).painLevel(5).build());
+                .timing(PainTiming.PRE).bodyPart(BodyPart.어깨).side(BodySide.좌).painLevel(5).build());
         journal.addPainRecord(JournalPainRecord.builder()
-                .timing(PainTiming.PRE).bodyPart(BodyPart.KNEE).side(BodySide.RIGHT).painLevel(4).build());
+                .timing(PainTiming.PRE).bodyPart(BodyPart.무릎).side(BodySide.우).painLevel(4).build());
 
         WorkoutJournal saved = journalRepository.save(journal);
         em.flush();
@@ -125,7 +125,7 @@ class JournalRepositoryTest {
         User user = saveUser();
         WorkoutJournal journal = buildJournal(user.getId());
         journal.addPainRecord(JournalPainRecord.builder()
-                .timing(PainTiming.PRE).bodyPart(BodyPart.KNEE).side(BodySide.LEFT).painLevel(5).build());
+                .timing(PainTiming.PRE).bodyPart(BodyPart.무릎).side(BodySide.좌).painLevel(5).build());
 
         WorkoutJournal saved = journalRepository.save(journal);
         em.flush();

@@ -59,7 +59,7 @@ class ConditionCheckActivity : AppCompatActivity() {
         "뒷면" to mapOf(
             "머리/목" to listOf("경추 (목뼈 부위)"),
             "상체" to listOf("등", "어깨", "날개(견갑골)", "허리", "꼬리뼈"),
-            "팔/손" to listOf("윗팔", "팔꿈치", "아랫팔", "손목", "손바닥", "손가락"),
+            "팔/손" to listOf("윗팔", "팔꿈치", "아랫팔", "손목", "손등", "손가락"),
             "하체" to listOf("엉덩이", "뒷허벅지", "오금", "종아리"),
             "발" to listOf("아킬레스건", "발바닥")
         )

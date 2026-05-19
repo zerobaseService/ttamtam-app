@@ -21,6 +21,7 @@ public class JournalSummaryDto {
     private final Integer preOverallCondition;
     private final String contentPreview;
     private final String workoutType;
+    private final boolean hasImage;
 
     public JournalSummaryDto(WorkoutJournal journal) {
         this.journalId = journal.getId();
@@ -32,5 +33,6 @@ public class JournalSummaryDto {
         String c = journal.getContent();
         this.contentPreview = (c != null && c.length() > 100) ? c.substring(0, 100) : c;
         this.workoutType = journal.getWorkoutType();
+        this.hasImage = !journal.getAttachments().isEmpty();
     }
 }
